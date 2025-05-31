@@ -11,7 +11,7 @@
 #include "common.h"
 #include "config.h"
 
-LogLevel logging_level = LOG_INFO;
+LogLevel logging_level = LOG_DEBUG;
 LogMask logging_mask = LOG_BASIC;
 
 // Control if the logging logic should assume the execution is withint the

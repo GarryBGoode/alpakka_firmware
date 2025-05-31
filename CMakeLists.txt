@@ -84,7 +84,7 @@ target_sources(${PROJECT} PUBLIC
     src/glyph.c
     src/gyro.c
     src/hid.c
-    src/imu.c
+    src/imu_advanced.c
     src/led.c
     src/logging.c
     src/loop.c

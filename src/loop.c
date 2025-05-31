@@ -25,6 +25,7 @@
 static DeviceMode device_mode = WIRED;
 static bool battery_low = false;
 static uint64_t system_clock = 0;
+extern Vector imu_gyro_global;
 
 DeviceMode loop_get_device_mode() {
     return device_mode;
@@ -227,6 +228,7 @@ void loop_run() {
     info("LOOP: Main loop start\n");
     uint16_t i = 0;
     logging_set_onloop(true);
+    logging_set_level(LOG_DEBUG);
     while (true) {
         i++;
         // Start timer.
@@ -252,6 +254,7 @@ void loop_run() {
                 average = max = 0;
             }
         }
+        //if (touch_status()) printf("%.2f\t%.2f\n",imu_gyro_global.x, imu_gyro_global.y);
         // Idling control.
         if (unused > 0) sleep_us((uint32_t)unused);
         else {

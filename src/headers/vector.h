@@ -2,12 +2,24 @@
 // Copyright (C) 2022, Input Labs Oy.
 
 #pragma once
-
+#include <stdint.h>
 typedef struct vector_struct {
     double x;
     double y;
     double z;
 } Vector;
+
+typedef struct intvector_struct {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+} IntVector;
+
+typedef struct floatvector_struct {
+    float x;
+    float y;
+    float z;
+} FloatVector;
 
 typedef struct vector4_struct {
     float x;

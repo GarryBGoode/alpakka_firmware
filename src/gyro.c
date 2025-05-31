@@ -16,12 +16,16 @@
 #include "vector.h"
 
 double sensitivity_multiplier;
+#define X_MULTIPLIER 2.0
+#define Y_MULTIPLIER 1.0
+#define Z_MULTIPLIER 1.0
 
 uint8_t world_init = 0;
 Vector world_top;
 Vector world_fw;
 Vector world_right;
 Vector accel_smooth;
+Vector imu_gyro_global;
 
 void gyro_update_sensitivity() {
     uint8_t preset = config_get_mouse_sens_preset();
@@ -155,6 +159,9 @@ void Gyro__report_incremental(Gyro *self) {
     static double sub_z = 0;
      // Read gyro values.
     Vector imu_gyro = imu_read_gyro();
+    imu_gyro_global.x = imu_gyro.x;
+    imu_gyro_global.y = imu_gyro.y;
+    imu_gyro_global.z = imu_gyro.z;
     double x = imu_gyro.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier;
     double y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier;
     double z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier;

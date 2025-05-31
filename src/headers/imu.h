@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (C) 2022, Input Labs Oy.
 
+#include "imu_advanced.h"
+#if 0
 #pragma once
 #include "vector.h"
 
@@ -34,3 +36,4 @@ Vector imu_read_accel();
 void imu_load_calibration();
 void imu_calibrate();
 
+#endif
