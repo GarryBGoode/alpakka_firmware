@@ -16,9 +16,7 @@
 #include "vector.h"
 
 double sensitivity_multiplier;
-#define X_MULTIPLIER 2.0
-#define Y_MULTIPLIER 1.0
-#define Z_MULTIPLIER 1.0
+
 
 uint8_t world_init = 0;
 Vector world_top;
@@ -26,6 +24,10 @@ Vector world_fw;
 Vector world_right;
 Vector accel_smooth;
 Vector imu_gyro_global;
+
+FloatVector gyro_integral = {0, 0, 0};
+FloatVector gyro_ref_point = {0, 0, 0};
+IntVector gyro_val_rounded = {0, 0, 0};
 
 void gyro_update_sensitivity() {
     uint8_t preset = config_get_mouse_sens_preset();
@@ -89,7 +91,7 @@ void gyro_absolute_output(float value, uint8_t *actions, bool *pressed) {
     }
 }
 
-void gyro_incremental_output(double value, uint8_t *actions) {
+void gyro_incremental_output(int16_t value, uint8_t *actions) {
     for(uint8_t i=0; i<4; i++) {
         uint8_t action = actions[i];
         if      (action == MOUSE_X)     hid_mouse_move(value, 0);
@@ -100,6 +102,7 @@ void gyro_incremental_output(double value, uint8_t *actions) {
 }
 
 double hssnf(double t, double k, double x) {
+    //t = 1, k = 0.5
     double a = x - (x * k);
     double b = 1 - (x * k * (1/t));
     return a / b;
@@ -153,42 +156,67 @@ void Gyro__report_absolute(Gyro *self) {
     // printf("\r%6.1f %6.1f %6.1f", x*100, y*100, z*100);
 }
 
-void Gyro__report_incremental(Gyro *self) {
-    static double sub_x = 0;
-    static double sub_y = 0;
-    static double sub_z = 0;
-     // Read gyro values.
-    Vector imu_gyro = imu_read_gyro();
-    imu_gyro_global.x = imu_gyro.x;
-    imu_gyro_global.y = imu_gyro.y;
-    imu_gyro_global.z = imu_gyro.z;
-    double x = imu_gyro.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier;
-    double y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier;
-    double z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier;
-    // Additional processing.
-    double t = 1.0;
-    double k = 0.5;
-    if      (x > 0 && x <  t) x =  hssnf(t, k,  x);
-    else if (x < 0 && x > -t) x = -hssnf(t, k, -x);
-    if      (y > 0 && y <  t) y =  hssnf(t, k,  y);
-    else if (y < 0 && y > -t) y = -hssnf(t, k, -y);
-    if      (z > 0 && z <  t) z =  hssnf(t, k,  z);
-    else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
-    // Reintroduce subpixel leftovers.
-    x += sub_x;
-    y += sub_y;
-    z += sub_z;
-    // Round down and save leftovers.
-    sub_x = modf(x, &x);
-    sub_y = modf(y, &y);
-    sub_z = modf(z, &z);
-    // Report.
-    if (x >= 0) gyro_incremental_output( x, self->actions_x_pos);
-    else        gyro_incremental_output(-x, self->actions_x_neg);
-    if (y >= 0) gyro_incremental_output( y, self->actions_y_pos);
-    else        gyro_incremental_output(-y, self->actions_y_neg);
-    if (z >= 0) gyro_incremental_output( z, self->actions_z_pos);
-    else        gyro_incremental_output(-z, self->actions_z_neg);
+void Gyro__report_incremental(Gyro *self, bool engaged) {
+
+    FloatVector gyro;
+    FloatVector accel;
+    int16_t x, y, z;
+    imu_update(&gyro, &accel);
+    float gyro_abs = 1.0f;
+
+    /* This deadzone is a bit of a hack, it helps reduce noise, feels similar to friction */
+    if (CFG_GYRO_DEADZONE_CONSTANT>0){
+        gyro_abs=    CFG_GYRO_PIX_SENSITIVITY / CFG_TICK_FREQUENCY / CFG_GYRO_DEADZONE_CONSTANT * sensitivity_multiplier *
+                     CFG_GYRO_PIX_SENSITIVITY / CFG_TICK_FREQUENCY / CFG_GYRO_DEADZONE_CONSTANT * sensitivity_multiplier *
+                    (gyro.x * gyro.x +
+                     gyro.y * gyro.y +
+                     gyro.z * gyro.z);
+    }
+    float deadzone_multiplier = 1.0f;
+    if (gyro_abs<1.0f)
+    {
+        deadzone_multiplier = sqrtf(sqrtf(gyro_abs));
+    }
+    gyro_integral.x += gyro.x/CFG_TICK_FREQUENCY*deadzone_multiplier;
+    gyro_integral.y += gyro.y/CFG_TICK_FREQUENCY*deadzone_multiplier;
+    gyro_integral.z += gyro.z/CFG_TICK_FREQUENCY*deadzone_multiplier;
+    if (engaged)
+    {
+        x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(gyro_integral.x - gyro_ref_point.x);
+        y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(gyro_integral.y - gyro_ref_point.y);
+        z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(gyro_integral.z - gyro_ref_point.z);
+        if(x-gyro_val_rounded.x)
+        {
+            int16_t x_diff = x - gyro_val_rounded.x;
+            if (x_diff >= 0) gyro_incremental_output( x_diff, self->actions_x_pos);
+            else gyro_incremental_output(-x_diff, self->actions_x_neg);
+            gyro_val_rounded.x = x;
+        }
+        if(gyro_val_rounded.y != y)
+        {
+            int16_t y_diff = y - gyro_val_rounded.y;
+            if (y_diff >= 0) gyro_incremental_output( y_diff, self->actions_y_pos);
+            else gyro_incremental_output(-y_diff, self->actions_y_neg);
+            gyro_val_rounded.y = y;
+        }
+        if(gyro_val_rounded.z != z)
+        {
+            int16_t z_diff = z - gyro_val_rounded.z;
+            if (z_diff >= 0) gyro_incremental_output( z_diff, self->actions_z_pos);
+            else gyro_incremental_output(-z_diff, self->actions_z_neg);
+            gyro_val_rounded.z = z;
+        }
+            
+
+    }
+    else {
+        gyro_ref_point.x = gyro_integral.x;
+        gyro_ref_point.y = gyro_integral.y;
+        gyro_ref_point.z = gyro_integral.z;
+        gyro_val_rounded.x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(gyro_integral.x - gyro_ref_point.x);
+        gyro_val_rounded.y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(gyro_integral.y - gyro_ref_point.y);
+        gyro_val_rounded.z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(gyro_integral.z - gyro_ref_point.z);
+    }
 }
 
 bool Gyro__is_engaged(Gyro *self) {
@@ -199,13 +227,13 @@ bool Gyro__is_engaged(Gyro *self) {
 
 void Gyro__report(Gyro *self) {
     if (self->mode == GYRO_MODE_TOUCH_ON) {
-        if (self->is_engaged(self)) self->report_incremental(self);
+        self->report_incremental(self,self->is_engaged(self));
     }
     else if (self->mode == GYRO_MODE_TOUCH_OFF) {
-        if (!self->is_engaged(self)) self->report_incremental(self);
+        self->report_incremental(self, !self->is_engaged(self));
     }
     else if (self->mode == GYRO_MODE_ALWAYS_ON) {
-        self->report_incremental(self);
+        self->report_incremental(self,true);
     }
     else if (self->mode == GYRO_MODE_AXIS_ABSOLUTE) {
         self->report_absolute(self);

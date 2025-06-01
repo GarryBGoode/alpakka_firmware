@@ -49,62 +49,18 @@ void imu_channel_select() {
     IMU1 = config->swap_gyros ? PIN_SPI_CS0 : PIN_SPI_CS1;
 }
 
-FloatVector imu_read_gyro_burst(uint8_t cs, uint8_t samples) {
-    uint8_t buf[240];
-    uint8_t sample_size = samples * 6;
-    uint8_t act_samples = samples;
-    int16_t locval = 0;
+void imu_readall(uint8_t cs, IntVector data[])
+{
+    // Read all of gyro and accel data without further processing.
+    uint8_t buf[12];
+    bus_spi_read(cs, IMU_READ | IMU_OUTX_L_G, buf, 12);
+    data[0].y = (((int16_t)buf[1] << 8) + (int16_t)buf[0]);
+    data[0].z = (((int16_t)buf[3] << 8) + (int16_t)buf[2]);
+    data[0].x = (((int16_t)buf[5] << 8) + (int16_t)buf[4]);
 
-    int32_t xval = 0;
-    int32_t yval = 0;
-    int32_t zval = 0;
-    if (sample_size > 240) 
-    {
-        sample_size = 240;
-        act_samples = 40;
-    }
-
-    bus_spi_read(cs, IMU_READ | IMU_OUTX_L_G, buf, sample_size);
-    for(uint8_t i=0; i<sample_size; i+=6) {
-        locval = ((((int16_t)buf[i+1]) << 8) | (int16_t)buf[i]);
-        yval = locval;
-        locval = ((((int16_t)buf[i+3]) << 8) | (int16_t)buf[i+2]);
-        zval = locval;
-        locval = ((((int16_t)buf[i+5]) << 8) | (int16_t)buf[i+4]);
-        xval = locval;
-    }
-        return (FloatVector){
-            ((float)xval)/act_samples,
-            ((float)yval)/act_samples,
-            ((float)zval)/act_samples
-        };
-}
-
-
-FloatVector imu_read_accel_burst(uint8_t cs, uint8_t samples) {
-    uint8_t buf[240];
-    uint8_t sample_size = samples * 6;
-    uint8_t act_samples = samples;
-    int32_t xval = 0;
-    int32_t yval = 0;
-    int32_t zval = 0;
-    if (sample_size > 240) 
-    {
-        sample_size = 240;
-        act_samples = 40;
-    }
-
-    bus_spi_read(cs, IMU_READ | IMU_OUTX_L_XL, buf, sample_size);
-    for(uint8_t i=0; i<sample_size; i+=3) {
-        xval += ((((int16_t)buf[i+1]) << 8) | (int16_t)buf[i]);
-        yval += ((((int16_t)buf[i+3]) << 8) | (int16_t)buf[i+2]);
-        zval += ((((int16_t)buf[i+5]) << 8) | (int16_t)buf[i+4]);
-    }
-        return (FloatVector){
-            ((float)xval)/act_samples,
-            ((float)yval)/act_samples,
-            ((float)zval)/act_samples
-        };
+    data[1].x = (((int16_t)buf[ 7] << 8) + (int16_t)buf[ 6]);
+    data[1].y = (((int16_t)buf[ 9] << 8) + (int16_t)buf[ 8]);
+    data[1].z = (((int16_t)buf[11] << 8) + (int16_t)buf[10]);
 }
 
 void imu_init_single(uint8_t cs, uint8_t gyro_conf) {
@@ -149,8 +105,13 @@ void imu_init() {
 }
 
 Vector imu_read_gyro() {
-    FloatVector gyro0 = imu_read_gyro_burst(IMU0, 1);
-    FloatVector gyro1 = imu_read_gyro_burst(IMU1, 1);
+    IntVector data[2];
+    imu_readall(IMU0, data);
+    IntVector gyro0 = data[0];
+    IntVector accel0 = data[1];
+    imu_readall(IMU1, data);
+    IntVector gyro1 = data[0];
+    IntVector accel1 = data[1];
     double weight = max(abs(gyro1.x), abs(gyro1.y)) / 32768.0;
     double weight_0 = ramp_mid(weight, 0.2);
     double weight_1 = 1 - weight_0;
@@ -160,14 +121,50 @@ Vector imu_read_gyro() {
     return (Vector){-x/2, -y/2, -z/2};
 }
 
-Vector imu_read_accel() {
-    FloatVector accel0 = imu_read_accel_burst(IMU0,8);
-    FloatVector accel1 = imu_read_accel_burst(IMU1,8);
+Vector imu_read_accel()
+{
+    IntVector data[2];
+    imu_readall(IMU0, data);
+    IntVector gyro0 = data[0];
+    IntVector accel0 = data[1];
+    imu_readall(IMU1, data);
+    IntVector gyro1 = data[0];
+    IntVector accel1 = data[1];
+
     return (Vector){
-        (accel0.x + accel1.x) / 2,
-        (accel0.y + accel1.y) / 2,
-        (accel0.z + accel1.z) / 2
+        (accel0.x + accel1.x) / 2 - offset_accel_0_x,
+        (accel0.y + accel1.y) / 2 - offset_accel_0_y,
+        (accel0.z + accel1.z) / 2 - offset_accel_0_z
     };
+}
+
+
+void imu_update(FloatVector *gyro, FloatVector *accel) {
+    IntVector data[2];
+    imu_readall(IMU0, data);
+    IntVector gyro0 = data[0];
+    IntVector accel0 = data[1];
+    imu_readall(IMU1, data);
+    IntVector gyro1 = data[0];
+    IntVector accel1 = data[1];
+
+    float weight = max(abs(gyro1.x), abs(gyro1.y)) / 32768.0f;
+    float weight_1 = (1 - ramp_mid(weight, 0.2f));
+    float weight_0 = 1 - weight_1;
+
+    float x = (gyro0.x-offset_gyro_0_x) * weight_0 *GYRO_SENS_RADPS_500 + (gyro1.x-offset_gyro_1_x) * weight_1 * GYRO_SENS_RADPS_125;
+    float y = (gyro0.y-offset_gyro_0_y) * weight_0 *GYRO_SENS_RADPS_500 + (gyro1.y-offset_gyro_1_y) * weight_1 * GYRO_SENS_RADPS_125;
+    float z = (gyro0.z-offset_gyro_0_z) * weight_0 *GYRO_SENS_RADPS_500 + (gyro1.z-offset_gyro_1_z) * weight_1 * GYRO_SENS_RADPS_125;
+
+    float ax = (accel0.x + accel1.x) / 2 - offset_accel_0_x;
+    float ay = (accel0.y + accel1.y) / 2 - offset_accel_0_y;
+    float az = (accel0.z + accel1.z) / 2 - offset_accel_0_z;
+    gyro->x = x;
+    gyro->y = y;
+    gyro->z = z;
+    accel->x = ax;
+    accel->y = ay;
+    accel->z = az;
 }
 
 void imu_calibrate_single(uint8_t cs, bool mode, double* x, double* y, double* z) {
@@ -191,7 +188,20 @@ void imu_calibrate_single(uint8_t cs, bool mode, double* x, double* y, double* z
     uint32_t i = 0;
     info("| 0%%%*s100%% |\n", CFG_CALIBRATION_PROGRESS_BAR - 10, "");
     while(i < nsamples) {
-        FloatVector sample = mode ? imu_read_accel_burst(cs,1) : imu_read_gyro_burst(cs,1);
+        FloatVector sample;
+        IntVector data[2];
+        imu_readall(IMU0, data);
+        IntVector gyro0 = data[0];
+        IntVector accel0 = data[1];
+        if (!mode) {
+            sample.x = gyro0.x;
+            sample.y = gyro0.y;
+            sample.z = gyro0.z;
+        } else {
+            sample.x = accel0.x;
+            sample.y = accel0.y;
+            sample.z = accel0.z;
+        }
         sum_x += sample.x;
         sum_y += sample.y;
         sum_z += sample.z;

@@ -255,6 +255,13 @@ void hid_mouse_move(int16_t x, int16_t y) {
     synced_mouse = false;
 }
 
+void hid_mouse_position(int16_t x, int16_t y) {
+    // Set mouse position to absolute coordinates.
+    mouse_x = x;
+    mouse_y = y;
+    synced_mouse = false;
+}
+
 void hid_gamepad_axis(GamepadAxis axis, double value) {
     gamepad_axis[axis] += value;  // Multiple inputs can be combined.
 }

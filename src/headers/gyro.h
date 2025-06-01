@@ -15,7 +15,7 @@ typedef struct Gyro_struct Gyro;
 struct Gyro_struct {
     bool (*is_engaged) (Gyro *self);
     void (*report) (Gyro *self);
-    void (*report_incremental) (Gyro *self);
+    void (*report_incremental) (Gyro *self, bool engaged);
     void (*report_absolute) (Gyro *self);
     void (*reset) (Gyro *self);
     void (*config_x) (Gyro *self, double min, double max, Actions neg, Actions pos);

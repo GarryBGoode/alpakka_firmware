@@ -30,10 +30,17 @@
 #define GYRO_SENS_RADPS_2000 0.00122173047639603f
 #define GYRO_SENS_RADPS_4000 0.00244346095279206f
 
+#define GYRO_SENS_DEGPS_125  4.375E-03f
+#define GYRO_SENS_DEGPS_250  8.75E-03f
+#define GYRO_SENS_DEGPS_500  1.75E-2f
+#define GYRO_SENS_DEGPS_1000 3.5E-2f
+#define GYRO_SENS_DEGPS_2000 7E-2f
+#define GYRO_SENS_DEGPS_4000 14E-2f
+
 #define RAD_2_DEG 57.2957795130823f
 #define DEG_2_RAD 0.0174532925199433f
 
-#define GYRO_LPF1_ENABLE_CTRL4_C 0b00000010
+#define GYRO_LPF1_ENABLE_CTRL4_C 0b00000011
 
 #define IMU_READ 0b10000000 
 #define IMU_WHO_AM_I 0x0f  // Identifier address.
@@ -67,5 +74,6 @@ Vector imu_read_gyro();
 Vector imu_read_accel();
 void imu_load_calibration();
 void imu_calibrate();
+void imu_update(FloatVector *gyro, FloatVector *accel);
 
 #endif // ifndef imu_advanced_h
