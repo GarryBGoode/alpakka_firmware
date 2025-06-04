@@ -23,6 +23,8 @@ void quaternion_from_axis_angle(const float *axis, float angle, float *q);
 
 void quaternion_from_rotation_vector(const float *v, float *q, float eps);
 
+void quaternion_to_rotation_vector(const float *q, float *v) ;
+
 // Matrix and vector math helpers (implement as needed)
 void mat_mult(float *A, int a_rows, int a_cols, float *B, int b_cols, float *C);
 

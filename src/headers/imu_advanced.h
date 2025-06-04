@@ -42,6 +42,13 @@
 
 #define GYRO_LPF1_ENABLE_CTRL4_C 0b00000011
 
+#define ACCEL_SENS_2G 0.00059841f
+#define ACCEL_SENS_4G 0.00119682f
+#define ACCEL_SENS_8G 0.00239364f
+#define ACCEL_SENS_16G 0.00478728f
+
+#define ACCEL_G 9.80665f  // Standard gravity in m/s^2.
+
 #define IMU_READ 0b10000000 
 #define IMU_WHO_AM_I 0x0f  // Identifier address.
 #define IMU_CTRL1_XL 0x10  // Accelerometer config address.
@@ -60,7 +67,7 @@
 
 #define IMU_CTRL1_XL_OFF 0b00000000  // Accelerometer value power off.
 #define IMU_CTRL1_XL_2G  0b10100010  // Accelerometer value for 2G range.
-#define IMU_CTRL8_XL_LP  0b00000000  // Accelerometer value for low pass filter.
+#define IMU_CTRL8_XL_LP  0b10000000  // Accelerometer value for low pass filter.
 #define IMU_CTRL2_G_OFF  0b00000000  // Gyroscope value power off.
 #define IMU_CTRL2_G_125  0b10100010  // Gyroscope value for 125 dps.
 #define IMU_CTRL2_G_250  0b10100011  // Gyroscope value for 125 dps.

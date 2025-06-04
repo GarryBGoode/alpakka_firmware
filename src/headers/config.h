@@ -48,11 +48,11 @@
 
 #define CFG_GYRO_PIX_SENSITIVITY  2000 // kind of magic tuning constant
 #define CFG_GYRO_SENSITIVITY  (pow(2, -9) * 1.45)
-#define CFG_GYRO_SENSITIVITY_X  -2
+#define CFG_GYRO_SENSITIVITY_X  -16.0f/9.0f
 #define CFG_GYRO_SENSITIVITY_Y  -1
 #define CFG_GYRO_SENSITIVITY_Z  1
 
-#define CFG_GYRO_DEADZONE_CONSTANT 0.5f
+#define CFG_GYRO_DEADZONE_CONSTANT 0.10f
 
 #define CFG_MOUSE_WHEEL_DEBOUNCE 1000
 #define CFG_ACCEL_CORRECTION_SMOOTH 50  // Number of averaged samples for the correction vector.

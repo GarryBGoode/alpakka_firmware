@@ -132,9 +132,9 @@ Vector imu_read_accel()
     IntVector accel1 = data[1];
 
     return (Vector){
-        (accel0.x + accel1.x) / 2 - offset_accel_0_x,
-        (accel0.y + accel1.y) / 2 - offset_accel_0_y,
-        (accel0.z + accel1.z) / 2 - offset_accel_0_z
+        (accel0.x + accel1.x) / 2,
+        (accel0.y + accel1.y) / 2,
+        (accel0.z + accel1.z) / 2
     };
 }
 
@@ -149,16 +149,16 @@ void imu_update(FloatVector *gyro, FloatVector *accel) {
     IntVector accel1 = data[1];
 
     float weight = max(abs(gyro1.x), abs(gyro1.y)) / 32768.0f;
-    float weight_1 = (1 - ramp_mid(weight, 0.2f));
+    float weight_1 = (1 - ramp_mid(weight, 0.2f))*0.5f;
     float weight_0 = 1 - weight_1;
 
     float x = (gyro0.x-offset_gyro_0_x) * weight_0 *GYRO_SENS_RADPS_500 + (gyro1.x-offset_gyro_1_x) * weight_1 * GYRO_SENS_RADPS_125;
     float y = (gyro0.y-offset_gyro_0_y) * weight_0 *GYRO_SENS_RADPS_500 + (gyro1.y-offset_gyro_1_y) * weight_1 * GYRO_SENS_RADPS_125;
     float z = (gyro0.z-offset_gyro_0_z) * weight_0 *GYRO_SENS_RADPS_500 + (gyro1.z-offset_gyro_1_z) * weight_1 * GYRO_SENS_RADPS_125;
 
-    float ax = (accel0.x + accel1.x) / 2 - offset_accel_0_x;
-    float ay = (accel0.y + accel1.y) / 2 - offset_accel_0_y;
-    float az = (accel0.z + accel1.z) / 2 - offset_accel_0_z;
+    float ax = ACCEL_SENS_2G*((accel0.x + accel1.x) / 2);
+    float ay = ACCEL_SENS_2G*((accel0.y + accel1.y) / 2);
+    float az = ACCEL_SENS_2G*((accel0.z + accel1.z) / 2);
     gyro->x = x;
     gyro->y = y;
     gyro->z = z;
@@ -190,10 +190,10 @@ void imu_calibrate_single(uint8_t cs, bool mode, double* x, double* y, double* z
     while(i < nsamples) {
         FloatVector sample;
         IntVector data[2];
-        imu_readall(IMU0, data);
+        imu_readall(cs, data);
         IntVector gyro0 = data[0];
         IntVector accel0 = data[1];
-        if (!mode) {
+        if (mode==0) {
             sample.x = gyro0.x;
             sample.y = gyro0.y;
             sample.z = gyro0.z;

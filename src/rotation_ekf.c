@@ -4,17 +4,17 @@
 #include <string.h>
 
 
-typedef struct {
-    float x[STATE_SIZE];      // [qw, qx, qy, qz, bx, by, bz]
-    float P[STATE_SIZE][STATE_SIZE];
-    float Q[3][3];
-    float Q_bias[STATE_SIZE][STATE_SIZE];
-    float R[3][3];
-} EKF;
+// typedef struct {
+//     float x[STATE_SIZE];      // [qw, qx, qy, qz, bx, by, bz]
+//     float P[STATE_SIZE][STATE_SIZE];
+//     float Q[3][3];
+//     float Q_bias[STATE_SIZE][STATE_SIZE];
+//     float R[3][3];
+// } EKF;
 
 // Helper functions for vector/matrix/quaternion math
 void normalize(float *v, int n) {
-    float norm = 0.0;
+    float norm = 0.0f;
     for (int i = 0; i < n; ++i) norm += v[i] * v[i];
     norm = sqrtf(norm);
     if (norm > 1e-12) {
@@ -22,8 +22,22 @@ void normalize(float *v, int n) {
     }
 }
 
+void normalize_adjust(float *v, int n)
+{
+    /* A normalization method based on successive adjustments*/
+    float norm = 0.0f;
+    for (int i = 0; i < n; ++i) norm += v[i] * v[i];
+    float norm_diff = 1.0f - norm;
+    float gain = 1.0f;
+    if (fabsf(norm_diff) > 1e-12)
+    {
+        gain = 1.0f- norm_diff*0.5f;
+        if (gain < 0.01f) gain = 0.01f;
+        for (int i = 0; i < n; ++i) v[i] *= gain;
+    } 
+}
 void quaternion_identity(float *q) {
-    q[0] = 1.0; q[1] = 0.0; q[2] = 0.0; q[3] = 0.0;
+    q[0] = 1.0f; q[1] = 0.0f; q[2] = 0.0f; q[3] = 0.0f;
 }
 
 void quaternion_to_matrix(const float *q, float R[3][3]) {
@@ -50,8 +64,8 @@ void quaternion_multiply(const float *p, const float *q, float *r) {
 }
 
 void quaternion_from_axis_angle(const float *axis, float angle, float *q) {
-    float sin_half = sinf(angle / 2.0);
-    q[0] = cosf(angle / 2.0);
+    float sin_half = sinf(angle / 2.0f);
+    q[0] = cosf(angle / 2.0f);
     q[1] = axis[0] * sin_half;
     q[2] = axis[1] * sin_half;
     q[3] = axis[2] * sin_half;
@@ -67,12 +81,42 @@ void quaternion_from_rotation_vector(const float *v, float *q, float eps) {
     }
 }
 
+void quaternion_to_rotation_vector(const float *q, float *v) {
+    float angle = 2.0f * acosf(q[0]);
+    float sin_half_angle = sqrtf(1.0f - q[0] * q[0]);
+    if (sin_half_angle > 1e-12) {
+        v[0] = q[1] / sin_half_angle * angle;
+        v[1] = q[2] / sin_half_angle * angle;
+        v[2] = q[3] / sin_half_angle * angle;
+    } else {
+        // If the angle is very small, the rotation vector is approximately zero
+        v[0] = 0.0f;
+        v[1] = 0.0f;
+        v[2] = 0.0f;
+    }
+}
+
+void quaternion_to_axis_angle(const float *q, float *axis, float *angle) {
+    *angle = 2.0f * acosf(q[0]);
+    float sin_half_angle = sqrtf(1.0f - q[0] * q[0]);
+    if (sin_half_angle > 1e-12) {
+        axis[0] = q[1] / sin_half_angle;
+        axis[1] = q[2] / sin_half_angle;
+        axis[2] = q[3] / sin_half_angle;
+    } else {
+        // If the angle is very small, the axis is arbitrary
+        axis[0] = 1.0f;
+        axis[1] = 0.0f;
+        axis[2] = 0.0f;
+    }
+}
+
 // Matrix and vector math helpers (implement as needed)
 void mat_mult(float *A, int a_rows, int a_cols, float *B, int b_cols, float *C) {
     // C = A * B, where A is a_rows x a_cols, B is a_cols x b_cols, C is a_rows x b_cols
     for (int i = 0; i < a_rows; ++i) {
         for (int j = 0; j < b_cols; ++j) {
-            C[i*b_cols + j] = 0.0;
+            C[i*b_cols + j] = 0.0f;
             for (int k = 0; k < a_cols; ++k) {
                 C[i*b_cols + j] += A[i*a_cols + k] * B[k*b_cols + j];
             }
@@ -146,10 +190,10 @@ void predict_func(const float *x, const float *w, float dt, float *x_out) {
     float b[3] = { x[4], x[5], x[6] };
     float d_ang[3] = { (w[0]-b[0])*dt, (w[1]-b[1])*dt, (w[2]-b[2])*dt };
     float dq[4];
-    quaternion_from_rotation_vector(d_ang, dq, 0.0);
+    quaternion_from_rotation_vector(d_ang, dq, 0.0f);
     float q_new[4];
     quaternion_multiply(q, dq, q_new);
-    normalize(q_new, 4);
+    normalize_adjust(q_new, 4);
     for (int i = 0; i < 4; ++i) x_out[i] = q_new[i];
     for (int i = 0; i < 3; ++i) x_out[4+i] = b[i];
 }
@@ -161,7 +205,7 @@ void measure_func(const float *x, float *out) {
     float v[3] = { 0, 0, -G_ACCEL };
     // out = R^T * v
     for (int i = 0; i < 3; ++i) {
-        out[i] = 0.0;
+        out[i] = 0.0f;
         for (int j = 0; j < 3; ++j) {
             out[i] += R[j][i] * v[j];
         }
@@ -174,7 +218,7 @@ void EKF_init(EKF *ekf, const float *q0, const float *b0, float init_gyro_bias_e
     for (int i = 0; i < 4; ++i) ekf->x[i] = q0[i];
     for (int i = 0; i < 3; ++i) ekf->x[4+i] = b0[i];
     memset(ekf->P, 0, sizeof(ekf->P));
-    for (int i = 0; i < 4; ++i) ekf->P[i][i] = 0.01;
+    for (int i = 0; i < 4; ++i) ekf->P[i][i] = 0.01f;
     for (int i = 0; i < 3; ++i) ekf->P[4+i][4+i] = init_gyro_bias_err * init_gyro_bias_err;
     memset(ekf->Q, 0, sizeof(ekf->Q));
     for (int i = 0; i < 3; ++i) ekf->Q[i][i] = gyro_noise * gyro_noise;
@@ -205,7 +249,7 @@ void EKF_predict(EKF *ekf, const float *w, float dt) {
     // FP = F * P
     for (int i = 0; i < STATE_SIZE; ++i) {
         for (int j = 0; j < STATE_SIZE; ++j) {
-            FP[i][j] = 0.0;
+            FP[i][j] = 0.0f;
             for (int k = 0; k < STATE_SIZE; ++k) {
                 FP[i][j] += F[i][k] * ekf->P[k][j];
             }
@@ -215,7 +259,7 @@ void EKF_predict(EKF *ekf, const float *w, float dt) {
     // FPFt = FP * F^T
     for (int i = 0; i < STATE_SIZE; ++i) {
         for (int j = 0; j < STATE_SIZE; ++j) {
-            FPFt[i][j] = 0.0;
+            FPFt[i][j] = 0.0f;
             for (int k = 0; k < STATE_SIZE; ++k) {
                 FPFt[i][j] += FP[i][k] * F[j][k]; // F^T
             }
@@ -225,7 +269,7 @@ void EKF_predict(EKF *ekf, const float *w, float dt) {
     // WQ = W * Q
     for (int i = 0; i < STATE_SIZE; ++i) {
         for (int j = 0; j < 3; ++j) {
-            WQ[i][j] = 0.0;
+            WQ[i][j] = 0.0f;
             for (int k = 0; k < 3; ++k) {
                 WQ[i][j] += W[i][k] * ekf->Q[k][j];
             }
@@ -235,7 +279,7 @@ void EKF_predict(EKF *ekf, const float *w, float dt) {
     // WQWt = WQ * W^T
     for (int i = 0; i < STATE_SIZE; ++i) {
         for (int j = 0; j < STATE_SIZE; ++j) {
-            WQWt[i][j] = 0.0;
+            WQWt[i][j] = 0.0f;
             for (int k = 0; k < 3; ++k) {
                 WQWt[i][j] += WQ[i][k] * W[j][k];
             }
@@ -252,8 +296,8 @@ void EKF_predict(EKF *ekf, const float *w, float dt) {
 
 void EKF_update(EKF *ekf, const float *a) {
     float a_norm[3] = { a[0], a[1], a[2] };
-    normalize(a_norm, 3);
-    for (int i = 0; i < 3; ++i) a_norm[i] *= G_ACCEL;
+    // normalize(a_norm, 3);
+    // for (int i = 0; i < 3; ++i) a_norm[i] *= G_ACCEL;
 
     float hx[3];
     measure_func(ekf->x, hx);
@@ -286,7 +330,7 @@ void EKF_update(EKF *ekf, const float *a) {
         // Singular, do nothing
         return;
     }
-    float invdet = 1.0 / det;
+    float invdet = 1.0f / det;
     S_inv[0][0] =  (S[1][1]*S[2][2] - S[1][2]*S[2][1]) * invdet;
     S_inv[0][1] = -(S[0][1]*S[2][2] - S[0][2]*S[2][1]) * invdet;
     S_inv[0][2] =  (S[0][1]*S[1][2] - S[0][2]*S[1][1]) * invdet;
@@ -336,7 +380,7 @@ void EKF_update(EKF *ekf, const float *a) {
     float I_KH[STATE_SIZE][STATE_SIZE] = {0};
     for (int i = 0; i < STATE_SIZE; ++i) {
         for (int j = 0; j < STATE_SIZE; ++j) {
-            I_KH[i][j] = (i == j ? 1.0 : 0.0) - KH[i][j];
+            I_KH[i][j] = (i == j ? 1.0f : 0.0f) - KH[i][j];
         }
     }
     float newP[STATE_SIZE][STATE_SIZE] = {0};

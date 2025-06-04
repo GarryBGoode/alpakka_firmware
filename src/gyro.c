@@ -14,6 +14,8 @@
 #include "pin.h"
 #include "touch.h"
 #include "vector.h"
+#include "rotation_ekf.h"
+#include "rotation_fast.h"
 
 double sensitivity_multiplier;
 
@@ -24,10 +26,38 @@ Vector world_fw;
 Vector world_right;
 Vector accel_smooth;
 Vector imu_gyro_global;
+Vector imu_accel_global;
+
+float z_int = 0.0f;
+float z_int_threshold = 50.0f;
 
 FloatVector gyro_integral = {0, 0, 0};
 FloatVector gyro_ref_point = {0, 0, 0};
 IntVector gyro_val_rounded = {0, 0, 0};
+
+EKF main_ekf;
+
+RotationStateVector main_rotvec = {
+    .ux = 0.0f,
+    .uy = 0.0f,
+    .uz = 1.0f, // Default to Z-axis up.
+    .phi = 0.0f
+};
+
+RotationStateVector ref_rotvec = {
+    .ux = 0.0f,
+    .uy = 0.0f,
+    .uz = 1.0f, // Default to Z-axis up.
+    .phi = 0.0f
+};
+
+float ekf_q0[4] = {1, 0, 0, 0};
+float ekf_b0[3] = {0, 0, 0};
+float gyro_bias_err_P0 = 0.0f; // Initial gyro bias error.
+float gyro_noise = 0.01f; // Gyro noise.
+float gyro_bias_noise = 0.00001f; // Gyro bias noise.
+float accelerometer_noise = 1.0f; // Accelerometer noise.
+
 
 void gyro_update_sensitivity() {
     uint8_t preset = config_get_mouse_sens_preset();
@@ -162,6 +192,9 @@ void Gyro__report_incremental(Gyro *self, bool engaged) {
     FloatVector accel;
     int16_t x, y, z;
     imu_update(&gyro, &accel);
+    imu_accel_global.x = accel.x;
+    imu_accel_global.y = accel.y;
+    imu_accel_global.z = accel.z;
     float gyro_abs = 1.0f;
 
     /* This deadzone is a bit of a hack, it helps reduce noise, feels similar to friction */
@@ -175,17 +208,43 @@ void Gyro__report_incremental(Gyro *self, bool engaged) {
     float deadzone_multiplier = 1.0f;
     if (gyro_abs<1.0f)
     {
-        deadzone_multiplier = sqrtf(sqrtf(gyro_abs));
+        /* gyro abs is a length-square type value */
+        /* sqrt of that makes it closer to linear */
+        deadzone_multiplier = (sqrtf(gyro_abs));
     }
+    /* Integrating gyro signal */
+    /* Note: integration is done in float, noise drift is inevitable without deadzone*/
     gyro_integral.x += gyro.x/CFG_TICK_FREQUENCY*deadzone_multiplier;
     gyro_integral.y += gyro.y/CFG_TICK_FREQUENCY*deadzone_multiplier;
     gyro_integral.z += gyro.z/CFG_TICK_FREQUENCY*deadzone_multiplier;
+    float w_vector[3] = {gyro.y*deadzone_multiplier, gyro.z*deadzone_multiplier, gyro.x*deadzone_multiplier};
+    float accel_vector[3] = {accel.x, accel.y, accel.z};
+
+    update_rotation_state(&main_rotvec, w_vector, accel_vector, 1.0f/CFG_TICK_FREQUENCY);
+    // EKF_predict(&main_ekf, w_vector, 1.0f/CFG_TICK_FREQUENCY);
+    // EKF_update(&main_ekf, accel_vector);
+
+    /* Ratcheting logic:
+       There's a reference point, the mouse is considered to move relative to it.
+       When not engaged, ref point moves with gyro integral, so no movement.
+       When engaged, gyro integral moves relative to ref point, mouse movement applies.
+       Ultimately, mouse is reported as increments in int16 type.
+       A direct conversion gyro-to-int can cause an undesired deadzone.
+       Integrating in float without deadzone causes noise drift. 
+       Rounding and differentiating logic is added here to work around this.
+       Soft deadzone is calculated above.
+       */
+      x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(main_rotvec.phi- ref_rotvec.phi);
+      y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(main_rotvec.uy - ref_rotvec.uy);
+      z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(main_rotvec.ux - ref_rotvec.ux);
+    //   x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(gyro_integral.x - gyro_ref_point.x);
+    //   y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(gyro_integral.y - gyro_ref_point.y);
+    //   z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(gyro_integral.z - gyro_ref_point.z);
+
     if (engaged)
     {
-        x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(gyro_integral.x - gyro_ref_point.x);
-        y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(gyro_integral.y - gyro_ref_point.y);
-        z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(gyro_integral.z - gyro_ref_point.z);
-        if(x-gyro_val_rounded.x)
+
+        if(gyro_val_rounded.x!=x)
         {
             int16_t x_diff = x - gyro_val_rounded.x;
             if (x_diff >= 0) gyro_incremental_output( x_diff, self->actions_x_pos);
@@ -210,12 +269,14 @@ void Gyro__report_incremental(Gyro *self, bool engaged) {
 
     }
     else {
-        gyro_ref_point.x = gyro_integral.x;
-        gyro_ref_point.y = gyro_integral.y;
-        gyro_ref_point.z = gyro_integral.z;
-        gyro_val_rounded.x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(gyro_integral.x - gyro_ref_point.x);
-        gyro_val_rounded.y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(gyro_integral.y - gyro_ref_point.y);
-        gyro_val_rounded.z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(gyro_integral.z - gyro_ref_point.z);
+        ref_rotvec.phi = main_rotvec.phi;
+        ref_rotvec.ux = main_rotvec.ux;
+        ref_rotvec.uy = main_rotvec.uy;
+        ref_rotvec.uz = main_rotvec.uz;
+        gyro_val_rounded.x= 0;
+        gyro_val_rounded.y= 0;
+        gyro_val_rounded.z= 0;
+        z_int = 0.0f; // Reset the integral.
     }
 }
 
@@ -245,6 +306,11 @@ void Gyro__report(Gyro *self) {
 
 void Gyro__reset(Gyro *self) {
     world_init = 0;
+    EKF_init(&main_ekf, ekf_q0, ekf_b0, gyro_bias_err_P0, gyro_noise, gyro_bias_noise, accelerometer_noise);
+    main_rotvec.ux = 0.0f;
+    main_rotvec.uy = 0.0f;
+    main_rotvec.uz = 1.0f; // Default to Z-axis up.
+    main_rotvec.phi = 0.0f;
     self->pressed_x_pos = false;
     self->pressed_y_pos = false;
     self->pressed_z_pos = false;

@@ -21,11 +21,20 @@
 #include "common.h"
 #include "pin.h"
 #include "power.h"
+#include "rotation_ekf.h"
+#include "rotation_fast.h"
+
+#define DEVICE_ALPAKKA_V1 // just to keep intellisense happy
 
 static DeviceMode device_mode = WIRED;
 static bool battery_low = false;
 static uint64_t system_clock = 0;
 extern Vector imu_gyro_global;
+extern Vector imu_accel_global;
+extern EKF main_ekf;
+extern FloatVector gyro_integral;
+extern FloatVector gyro_ref_point;
+extern RotationStateVector main_rotvec;
 
 DeviceMode loop_get_device_mode() {
     return device_mode;
@@ -228,7 +237,7 @@ void loop_run() {
     info("LOOP: Main loop start\n");
     uint16_t i = 0;
     logging_set_onloop(true);
-    logging_set_level(LOG_DEBUG);
+    logging_set_level(LOG_INFO);
     while (true) {
         i++;
         // Start timer.
@@ -254,8 +263,14 @@ void loop_run() {
                 average = max = 0;
             }
         }
-        //if (touch_status()) printf("%.2f\t%.2f\n",imu_gyro_global.x, imu_gyro_global.y);
+        float rotvec[3] = {0, 0, 0};
+        // quaternion_to_rotation_vector(main_ekf.x, rotvec);
+        // if (touch_status()) printf("%.2f\t%.2f\t%.2f\t%.2f\n",main_rotvec.ux,main_rotvec.uy,main_rotvec.uz,main_rotvec.phi);
+
         // Idling control.
+        // calc again to account for all the printing and logging
+        used = time_us_32() - start;
+        unused = CFG_TICK_INTERVAL_IN_US - (int32_t)used;
         if (unused > 0) sleep_us((uint32_t)unused);
         else {
             info("+");
