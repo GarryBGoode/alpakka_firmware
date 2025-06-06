@@ -234,15 +234,29 @@ void Gyro__report_incremental(Gyro *self, bool engaged) {
        Rounding and differentiating logic is added here to work around this.
        Soft deadzone is calculated above.
        */
-      x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(main_rotvec.phi- ref_rotvec.phi);
-      y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(main_rotvec.uy - ref_rotvec.uy);
-      z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(main_rotvec.ux - ref_rotvec.ux);
-    //   x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(gyro_integral.x - gyro_ref_point.x);
-    //   y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(gyro_integral.y - gyro_ref_point.y);
-    //   z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(gyro_integral.z - gyro_ref_point.z);
+    x= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_X*sensitivity_multiplier*(main_rotvec.phi- ref_rotvec.phi);
+    y= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Y*sensitivity_multiplier*(main_rotvec.uy - ref_rotvec.uy);
+    z= CFG_GYRO_PIX_SENSITIVITY*CFG_GYRO_SENSITIVITY_Z*sensitivity_multiplier*(main_rotvec.ux - ref_rotvec.ux);
+    
+    float z_delta=0.0f;
+    
 
     if (engaged)
     {
+        if(main_rotvec.ux>0.15f){
+            z_delta = (main_rotvec.ux-0.15f)/main_rotvec.uz;
+            if (z_delta >1) z_delta = 1;
+        }
+        else if(main_rotvec.ux<-0.15f){
+            z_delta = (main_rotvec.ux+0.15f)/main_rotvec.uz;;
+            if (z_delta < -1) z_delta = -1;
+        }
+        else {
+            z_delta = 0.0f;
+        }
+
+        z_int += (z_delta) * CFG_GYRO_PIX_SENSITIVITY * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier/ CFG_TICK_FREQUENCY;
+        z = (int16_t)z_int;
 
         if(gyro_val_rounded.x!=x)
         {
