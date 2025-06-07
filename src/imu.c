@@ -42,8 +42,12 @@ void imu_channel_select() {
 
 void imu_init_single(uint8_t cs, uint8_t gyro_conf) {
     uint8_t id = bus_spi_read_one(cs, IMU_READ | IMU_WHO_AM_I);
+    // Accel options.
     bus_spi_write(cs, IMU_CTRL1_XL, IMU_CTRL1_XL_2G);
     bus_spi_write(cs, IMU_CTRL8_XL, IMU_CTRL8_XL_LP);
+    // Gyro options.
+    bus_spi_write(cs, IMU_CTRL4_C, GYRO_LPF1_ENABLE_CTRL4_C); // Enable LPF1
+    bus_spi_write(cs, IMU_CTRL6_C, GYRO_LPF1_470HZ_CTRL6_C); // FTYPE selection for LPF1
     bus_spi_write(cs, IMU_CTRL2_G, gyro_conf);
     uint8_t xl = bus_spi_read_one(cs, IMU_READ | IMU_CTRL1_XL);
     uint8_t g = bus_spi_read_one(cs, IMU_READ | IMU_CTRL2_G);
@@ -78,9 +82,9 @@ void imu_power_off() {
 Vector imu_read_gyro_bits(uint8_t cs) {
     uint8_t buf[6];
     bus_spi_read(cs, IMU_READ | IMU_OUTX_L_G, buf, 6);
-    int16_t y =  (((int8_t)buf[1] << 8) + (int8_t)buf[0]);
-    int16_t z =  (((int8_t)buf[3] << 8) + (int8_t)buf[2]);
-    int16_t x = -(((int8_t)buf[5] << 8) + (int8_t)buf[4]);
+    int16_t y =  (int16_t)(((uint16_t)buf[1] << 8) | (uint16_t)buf[0]);
+    int16_t z =  (int16_t)(((uint16_t)buf[3] << 8) | (uint16_t)buf[2]);
+    int16_t x = -(int16_t)(((uint16_t)buf[5] << 8) | (uint16_t)buf[4]);
     double offset_x = (cs==PIN_SPI_CS0) ? offset_gyro_0_x : offset_gyro_1_x;
     double offset_y = (cs==PIN_SPI_CS0) ? offset_gyro_0_y : offset_gyro_1_y;
     double offset_z = (cs==PIN_SPI_CS0) ? offset_gyro_0_z : offset_gyro_1_z;
@@ -102,9 +106,9 @@ Vector imu_read_gyro_bits(uint8_t cs) {
 Vector imu_read_accel_bits(uint8_t cs) {
     uint8_t buf[6];
     bus_spi_read(cs, IMU_READ | IMU_OUTX_L_XL, buf, 6);
-    int16_t x =  (((int8_t)buf[1] << 8) + (int8_t)buf[0]);
-    int16_t y =  (((int8_t)buf[3] << 8) + (int8_t)buf[2]);
-    int16_t z =  (((int8_t)buf[5] << 8) + (int8_t)buf[4]);
+    int16_t x =  (int16_t)(((uint16_t)buf[1] << 8) + (uint16_t)buf[0]);
+    int16_t y =  (int16_t)(((uint16_t)buf[3] << 8) + (uint16_t)buf[2]);
+    int16_t z =  (int16_t)(((uint16_t)buf[5] << 8) + (uint16_t)buf[4]);
     double offset_x = (cs==PIN_SPI_CS0) ? offset_accel_0_x : offset_accel_1_x;
     double offset_y = (cs==PIN_SPI_CS0) ? offset_accel_0_y : offset_accel_1_y;
     double offset_z = (cs==PIN_SPI_CS0) ? offset_accel_0_z : offset_accel_1_z;
@@ -140,8 +144,8 @@ Vector imu_read_gyro_burst(uint8_t cs, uint8_t samples) {
 }
 
 Vector imu_read_gyro() {
-    Vector gyro0 = imu_read_gyro_burst(IMU0, CFG_IMU_TICK_SAMPLES/8*1);
-    Vector gyro1 = imu_read_gyro_burst(IMU1, CFG_IMU_TICK_SAMPLES/8*7);
+    Vector gyro0 = imu_read_gyro_bits(IMU0);
+    Vector gyro1 = imu_read_gyro_bits(IMU1);
     double weight = max(abs(gyro1.x), abs(gyro1.y)) / 32768.0;
     double weight_0 = ramp_mid(weight, 0.2);
     double weight_1 = 1 - weight_0;

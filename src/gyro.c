@@ -159,14 +159,20 @@ void Gyro__report_incremental(Gyro *self) {
     double y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier;
     double z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier;
     // Additional processing.
-    double t = 1.0;
-    double k = 0.5;
+    double t = CFG_IMU_DEADZONE;
+    double k = CFG_IMU_DEADZONE_STRENGTH;
     if      (x > 0 && x <  t) x =  hssnf(t, k,  x);
     else if (x < 0 && x > -t) x = -hssnf(t, k, -x);
     if      (y > 0 && y <  t) y =  hssnf(t, k,  y);
     else if (y < 0 && y > -t) y = -hssnf(t, k, -y);
     if      (z > 0 && z <  t) z =  hssnf(t, k,  z);
     else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
+
+    // compensate tick frequency.
+    x *= (double)REFERENCE_TICK_FREQUENCY/(double)CFG_TICK_FREQUENCY;
+    y *= (double)REFERENCE_TICK_FREQUENCY/(double)CFG_TICK_FREQUENCY;
+    z *= (double)REFERENCE_TICK_FREQUENCY/(double)CFG_TICK_FREQUENCY;
+
     // Reintroduce subpixel leftovers.
     x += sub_x;
     y += sub_y;

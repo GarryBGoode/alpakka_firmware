@@ -30,10 +30,14 @@
 #ifdef DEVICE_DONGLE
     #define CFG_TICK_FREQUENCY 1000  // Hz.
 #else
-    #define CFG_TICK_FREQUENCY 250  // Hz.
+    #define CFG_TICK_FREQUENCY 1000  // Hz.
+    #define REFERENCE_TICK_FREQUENCY 250  // Hz. This used to be the default, it is used for backward compatibility.
 #endif
 
 #define CFG_IMU_TICK_SAMPLES 128  // Multi-sampling per pooling cycle.
+
+#define CFG_IMU_DEADZONE 1.0 // Deadzone for the IMU in pixels per second
+#define CFG_IMU_DEADZONE_STRENGTH 0.5 // Strength of the deadzone, the amount of movement reduction near zero.
 
 #define CFG_TICK_INTERVAL_IN_MS  (1000 / CFG_TICK_FREQUENCY)
 #define CFG_TICK_INTERVAL_IN_US  (1000000 / CFG_TICK_FREQUENCY)
