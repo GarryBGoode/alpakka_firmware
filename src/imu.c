@@ -146,7 +146,7 @@ Vector imu_read_gyro_burst(uint8_t cs, uint8_t samples) {
 Vector imu_read_gyro() {
     Vector gyro0 = imu_read_gyro_bits(IMU0);
     Vector gyro1 = imu_read_gyro_bits(IMU1);
-    double weight = max(abs(gyro1.x), abs(gyro1.y)) / 32768.0;
+    double weight = max(max(abs(gyro1.x), abs(gyro1.y)), abs(gyro1.z)) / 32768.0;
     double weight_0 = ramp_mid(weight, 0.2);
     double weight_1 = 1 - weight_0;
     double x = (gyro0.x * weight_0) + (gyro1.x * weight_1 / 4);

@@ -152,6 +152,10 @@ void Gyro__report_absolute(Gyro *self) {
 }
 
 void Gyro__report_absolute_fast(Gyro *self){
+    static uint32_t time_us_lock_prev = 0;
+    uint32_t time_us = time_us_32();
+    uint32_t dt_us = time_us - time_us_lock_prev; // Safe for overflow with unsigned arithmetic
+    time_us_lock_prev = time_us;
     Vector gyro = imu_read_gyro();
     Vector accel = imu_read_accel();
     // gyro axis convention is different from physical IMU axis convention.
@@ -162,7 +166,7 @@ void Gyro__report_absolute_fast(Gyro *self){
     float accel_arr[3] = {accel.x * ACCEL_SENS_2G, 
                           accel.y * ACCEL_SENS_2G, 
                           accel.z * ACCEL_SENS_2G};
-    update_rotation_state(&rotation_state, gyro_arr, accel_arr, 1.0f / CFG_TICK_FREQUENCY);
+    update_rotation_state(&rotation_state, gyro_arr, accel_arr, dt_us / 1000000.0f);
 
     // Output calculation.
     // physically, X points to the right of the controller
