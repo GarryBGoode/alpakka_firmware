@@ -14,6 +14,7 @@
 #include "pin.h"
 #include "touch.h"
 #include "vector.h"
+#include "rotation_fast.h"
 
 double sensitivity_multiplier;
 
@@ -22,6 +23,7 @@ Vector world_top;
 Vector world_fw;
 Vector world_right;
 Vector accel_smooth;
+RotationStateVector rotation_state;
 
 void gyro_update_sensitivity() {
     uint8_t preset = config_get_mouse_sens_preset();
@@ -149,6 +151,36 @@ void Gyro__report_absolute(Gyro *self) {
     // printf("\r%6.1f %6.1f %6.1f", x*100, y*100, z*100);
 }
 
+void Gyro__report_absolute_fast(Gyro *self){
+    Vector gyro = imu_read_gyro();
+    Vector accel = imu_read_accel();
+    // gyro axis convention is different from physical IMU axis convention.
+    float gyro_arr[3] = {gyro.y * GYRO_SENS_RADPS_500, 
+                         gyro.z * GYRO_SENS_RADPS_500, 
+                        -gyro.x * GYRO_SENS_RADPS_500};
+    // Acceleration axis convention is unchanged from physical IMU axis convention.
+    float accel_arr[3] = {accel.x * ACCEL_SENS_2G, 
+                          accel.y * ACCEL_SENS_2G, 
+                          accel.z * ACCEL_SENS_2G};
+    update_rotation_state(&rotation_state, gyro_arr, accel_arr, 1.0f / CFG_TICK_FREQUENCY);
+
+    // Output calculation.
+    // physically, X points to the right of the controller
+    float x = (atan2f(rotation_state.ux,rotation_state.uz)) / M_PI;
+    float y = -(asinf(rotation_state.uy)) / M_PI;
+    float z = rotation_state.phi / M_PI;
+
+    x = constrain(x * 1.1, -1, 1); // Additional saturation.
+    x = ramp(x, self->absolute_x_min/180, self->absolute_x_max/180); // Adjust range.
+    y = ramp(y, self->absolute_y_min/180, self->absolute_y_max/180); // Adjust range.
+    // Output mapping.
+    if (x >= 0) gyro_absolute_output( x, self->actions_x_pos, &(self->pressed_x_pos));
+    else        gyro_absolute_output(-x, self->actions_x_neg, &(self->pressed_x_neg));
+    if (y >= 0) gyro_absolute_output( y, self->actions_y_pos, &(self->pressed_y_pos));
+    else        gyro_absolute_output(-y, self->actions_y_neg, &(self->pressed_y_neg));
+}
+
+
 void Gyro__report_incremental(Gyro *self) {
     static double sub_x = 0;
     static double sub_y = 0;
@@ -253,7 +285,7 @@ Gyro Gyro_ (
     gyro.is_engaged = Gyro__is_engaged;
     gyro.report = Gyro__report;
     gyro.report_incremental = Gyro__report_incremental;
-    gyro.report_absolute = Gyro__report_absolute;
+    gyro.report_absolute = Gyro__report_absolute_fast;
     gyro.reset = Gyro__reset;
     gyro.config_x = Gyro__config_x;
     gyro.config_y = Gyro__config_y;

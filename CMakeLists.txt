@@ -102,6 +102,7 @@ target_sources(${PROJECT} PUBLIC
     src/profiles/racing.c
     src/profiles/rts.c
     src/rotary.c
+    src/rotation_fast.c
     src/self_test.c
     src/thanks.c
     src/thumbstick.c
