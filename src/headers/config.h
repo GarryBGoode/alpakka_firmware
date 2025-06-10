@@ -76,7 +76,7 @@ typedef struct __packed _Config {
     int8_t sens_touch;
     int8_t deadzone;
     int8_t vibration;
-    double sens_mouse_values[3];
+    float sens_mouse_values[3];
     int8_t sens_touch_values[5];
     float deadzone_values[3];
     float offset_ts_lx;
@@ -126,8 +126,10 @@ Config* config_read();
 void config_delete();
 
 void config_set_thumbstick_offset(float lx, float ly, float rx, float ry);
-void config_set_gyro_offset(double ax, double ay, double az, double bx, double by, double bz);
-void config_set_accel_offset(double ax, double ay, double az, double bx, double by, double bz);
+void config_set_gyro_offset(float ax, float ay, float az, float bx, float by, float bz);
+void config_set_accel_offset(float ax, float ay, float az, float bx, float by, float bz);
+void config_set_gyro_stddev(float ax, float ay, float az, float bx, float by, float bz);
+void config_set_accel_stddev(float ax, float ay, float az, float bx, float by, float bz);
 uint8_t config_get_protocol();
 void config_tune_set_mode(uint8_t mode);
 void config_tune(bool direction);
@@ -151,11 +153,11 @@ void config_set_mouse_sens_preset(uint8_t preset, bool notify_webusb);
 void config_set_deadzone_preset(uint8_t preset, bool notify_webusb);
 
 uint8_t config_get_touch_sens_value(uint8_t index);
-double config_get_mouse_sens_value(uint8_t index);
+float config_get_mouse_sens_value(uint8_t index);
 float config_get_deadzone_value(uint8_t index);
 
 void config_set_touch_sens_values(uint8_t* values);
-void config_set_mouse_sens_values(double* values);
+void config_set_mouse_sens_values(float* values);
 void config_set_deadzone_values(float* values);
 
 void config_set_log_level(LogLevel log_level);

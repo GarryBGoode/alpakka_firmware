@@ -198,9 +198,9 @@ Vector imu_read_gyro() {
     // IMU 0 is on 500dps, IMU 1 is on 125dps.
     // when IMU 0 is on 20% of its range or higher, IMU 1 is on 80% of its range
     // then IMU 0 takes over 100% of the weight.
-    weight_0.x = absf(gyro0.x)>0.20*32768 ? weight_0.x : 1;
-    weight_0.y = absf(gyro0.y)>0.20*32768 ? weight_0.y : 1;
-    weight_0.z = absf(gyro0.z)>0.20*32768 ? weight_0.z : 1;
+    weight_0.x = fabsf(gyro0.x)>0.20*32768 ? weight_0.x : 1;
+    weight_0.y = fabsf(gyro0.y)>0.20*32768 ? weight_0.y : 1;
+    weight_0.z = fabsf(gyro0.z)>0.20*32768 ? weight_0.z : 1;
     float x = (gyro0.x * weight_0.x) + (gyro1.x * (1.0-weight_0.x) / 4);
     float y = (gyro0.y * weight_0.y) + (gyro1.y * (1.0-weight_0.y) / 4);
     float z = (gyro0.z * weight_0.z) + (gyro1.z * (1.0-weight_0.z) / 4);
