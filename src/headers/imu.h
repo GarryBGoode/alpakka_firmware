@@ -25,6 +25,9 @@
 #define IMU_CTRL1_XL_2G  0b10100010  // Accelerometer value for 2G range, LPF2 enabled
 #define IMU_CTRL1_XL_2G_NOFILT  0b10100000  // Accelerometer value for 2G range, LPF2 disabled
 
+#define IMU_CTRL3_C_BOOT 0b00000001  // Reboot the IMU.
+#define IMU_CTRL3_C_BDU  0b01000000  // Block data update, prevents reading inconsistent data.
+
 /* XL = 100b that is ODR/100 bandwidth, 66Hz for 6.6kHz ODR */
 #define IMU_CTRL8_XL_LP  0b10000000  // Accelerometer value for low pass filter.
 #define IMU_CTRL2_G_OFF  0b00000000  // Gyroscope value power off.
@@ -97,3 +100,13 @@ Vector imu_read_accel();
 void imu_load_calibration();
 void imu_calibrate();
 
+typedef struct calib_data_struct {
+    float offset;
+    float variance;
+    float stddev;
+} CalibData;
+
+typedef struct imu_calib_struct {
+    CalibData gyro[3];
+    CalibData accel[3];
+} ImuCalib;

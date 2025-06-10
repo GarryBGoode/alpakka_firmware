@@ -45,13 +45,13 @@
 #define NVM_SYNC_FREQUENCY  (CFG_TICK_FREQUENCY / 2)
 
 #define CFG_CALIBRATION_SAMPLES_THUMBSTICK 100000  // Samples.
-#define CFG_CALIBRATION_SAMPLES_GYRO 500000  // Samples.
-#define CFG_CALIBRATION_SAMPLES_ACCEL 100000  // Samples.
+#define CFG_CALIBRATION_SAMPLES_GYRO  50000  // Samples.
+#define CFG_CALIBRATION_SAMPLES_ACCEL 10000  // Samples.
 #define CFG_CALIBRATION_LONG_FACTOR 4
 #define CFG_CALIBRATION_PROGRESS_BAR 40
 
 #define CFG_GYRO_SENSITIVITY  (pow(2, -9) * 1.45)
-#define CFG_GYRO_SENSITIVITY_X  (CFG_GYRO_SENSITIVITY * 1)
+#define CFG_GYRO_SENSITIVITY_X  (CFG_GYRO_SENSITIVITY * 2)
 #define CFG_GYRO_SENSITIVITY_Y  (CFG_GYRO_SENSITIVITY * 1)
 #define CFG_GYRO_SENSITIVITY_Z  (CFG_GYRO_SENSITIVITY * 1)
 
@@ -83,18 +83,30 @@ typedef struct __packed _Config {
     float offset_ts_ly;
     float offset_ts_rx;
     float offset_ts_ry;
-    double offset_gyro_0_x;
-    double offset_gyro_0_y;
-    double offset_gyro_0_z;
-    double offset_gyro_1_x;
-    double offset_gyro_1_y;
-    double offset_gyro_1_z;
-    double offset_accel_0_x;
-    double offset_accel_0_y;
-    double offset_accel_0_z;
-    double offset_accel_1_x;
-    double offset_accel_1_y;
-    double offset_accel_1_z;
+    float offset_gyro_0_x;
+    float offset_gyro_0_y;
+    float offset_gyro_0_z;
+    float offset_gyro_1_x;
+    float offset_gyro_1_y;
+    float offset_gyro_1_z;
+    float offset_accel_0_x;
+    float offset_accel_0_y;
+    float offset_accel_0_z;
+    float offset_accel_1_x;
+    float offset_accel_1_y;
+    float offset_accel_1_z;
+    float stddev_gyro_0_x;
+    float stddev_gyro_0_y;
+    float stddev_gyro_0_z;
+    float stddev_gyro_1_x;
+    float stddev_gyro_1_y;
+    float stddev_gyro_1_z;
+    float stddev_accel_0_x;
+    float stddev_accel_0_y;
+    float stddev_accel_0_z;
+    float stddev_accel_1_x;
+    float stddev_accel_1_y;
+    float stddev_accel_1_z;
     int8_t offset_gyro_user_x;
     int8_t offset_gyro_user_y;
     int8_t offset_gyro_user_z;

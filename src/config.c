@@ -152,6 +152,18 @@ void config_write_init() {
         .offset_accel_1_x = 0,
         .offset_accel_1_y = 0,
         .offset_accel_1_z = 0,
+        .stddev_gyro_0_x = 1.0,
+        .stddev_gyro_0_y = 1.0,
+        .stddev_gyro_0_z = 1.0,
+        .stddev_gyro_1_x = 1.0,
+        .stddev_gyro_1_y = 1.0,
+        .stddev_gyro_1_z = 1.0,
+        .stddev_accel_0_x = 1.0,
+        .stddev_accel_0_y = 1.0,
+        .stddev_accel_0_z = 1.0,
+        .stddev_accel_1_x = 1.0,
+        .stddev_accel_1_y = 1.0,
+        .stddev_accel_1_z = 1.0,
         .log_level = 0,
         .log_mask = 0,
         .long_calibration = 0,
@@ -239,6 +251,26 @@ void config_print() {
         config_cache.offset_accel_1_y,
         config_cache.offset_accel_1_z
     );
+    info("  stddev_gyro_0  x=%.2f y=%.2f z=%.2f\n",
+        config_cache.stddev_gyro_0_x,
+        config_cache.stddev_gyro_0_y,
+        config_cache.stddev_gyro_0_z
+    );
+    info("  stddev_gyro_1  x=%.2f y=%.2f z=%.2f\n",
+        config_cache.stddev_gyro_1_x,
+        config_cache.stddev_gyro_1_y,
+        config_cache.stddev_gyro_1_z
+    );
+    info("  stddev_accel_0 x=%.2f y=%.2f z=%.2f\n",
+        config_cache.stddev_accel_0_x,
+        config_cache.stddev_accel_0_y,
+        config_cache.stddev_accel_0_z
+    );
+    info("  stddev_accel_1 x=%.2f y=%.2f z=%.2f\n",
+        config_cache.stddev_accel_1_x,
+        config_cache.stddev_accel_1_y,
+        config_cache.stddev_accel_1_z
+    );
 }
 
 void config_print_minimal() {
@@ -283,6 +315,26 @@ void config_set_accel_offset(double ax, double ay, double az, double bx, double 
     config_cache.offset_accel_1_x = bx,
     config_cache.offset_accel_1_y = by,
     config_cache.offset_accel_1_z = bz,
+    config_cache_synced = false;
+}
+
+void config_set_gyro_stddev(double ax, double ay, double az, double bx, double by, double bz) {
+    config_cache.stddev_gyro_0_x = ax,
+    config_cache.stddev_gyro_0_y = ay,
+    config_cache.stddev_gyro_0_z = az,
+    config_cache.stddev_gyro_1_x = bx,
+    config_cache.stddev_gyro_1_y = by,
+    config_cache.stddev_gyro_1_z = bz,
+    config_cache_synced = false;
+}
+
+void config_set_accel_stddev(double ax, double ay, double az, double bx, double by, double bz) {
+    config_cache.stddev_accel_0_x = ax,
+    config_cache.stddev_accel_0_y = ay,
+    config_cache.stddev_accel_0_z = az,
+    config_cache.stddev_accel_1_x = bx,
+    config_cache.stddev_accel_1_y = by,
+    config_cache.stddev_accel_1_z = bz,
     config_cache_synced = false;
 }
 

@@ -16,7 +16,7 @@
 #include "vector.h"
 #include "rotation_fast.h"
 
-double sensitivity_multiplier;
+float sensitivity_multiplier;
 
 uint8_t world_init = 0;
 Vector world_top;
@@ -87,7 +87,7 @@ void gyro_absolute_output(float value, uint8_t *actions, bool *pressed) {
     }
 }
 
-void gyro_incremental_output(double value, uint8_t *actions) {
+void gyro_incremental_output(float value, uint8_t *actions) {
     for(uint8_t i=0; i<4; i++) {
         uint8_t action = actions[i];
         if      (action == MOUSE_X)     hid_mouse_move(value, 0);
@@ -97,9 +97,9 @@ void gyro_incremental_output(double value, uint8_t *actions) {
     }
 }
 
-double hssnf(double t, double k, double x) {
-    double a = x - (x * k);
-    double b = 1 - (x * k * (1/t));
+float hssnf(float t, float k, float x) {
+    float a = x - (x * k);
+    float b = 1 - (x * k * (1/t));
     return a / b;
 }
 
@@ -186,17 +186,17 @@ void Gyro__report_absolute_fast(Gyro *self){
 
 
 void Gyro__report_incremental(Gyro *self) {
-    static double sub_x = 0;
-    static double sub_y = 0;
-    static double sub_z = 0;
+    static float sub_x = 0;
+    static float sub_y = 0;
+    static float sub_z = 0;
      // Read gyro values.
     Vector imu_gyro = imu_read_gyro();
-    double x = imu_gyro.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier;
-    double y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier;
-    double z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier;
+    float x = imu_gyro.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier;
+    float y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier;
+    float z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier;
     // Additional processing.
-    double t = CFG_IMU_DEADZONE;
-    double k = CFG_IMU_DEADZONE_STRENGTH;
+    float t = CFG_IMU_DEADZONE;
+    float k = CFG_IMU_DEADZONE_STRENGTH;
     if      (x > 0 && x <  t) x =  hssnf(t, k,  x);
     else if (x < 0 && x > -t) x = -hssnf(t, k, -x);
     if      (y > 0 && y <  t) y =  hssnf(t, k,  y);
@@ -205,18 +205,18 @@ void Gyro__report_incremental(Gyro *self) {
     else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
 
     // compensate tick frequency.
-    x *= (double)REFERENCE_TICK_FREQUENCY/(double)CFG_TICK_FREQUENCY;
-    y *= (double)REFERENCE_TICK_FREQUENCY/(double)CFG_TICK_FREQUENCY;
-    z *= (double)REFERENCE_TICK_FREQUENCY/(double)CFG_TICK_FREQUENCY;
+    x *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
+    y *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
+    z *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
 
     // Reintroduce subpixel leftovers.
     x += sub_x;
     y += sub_y;
     z += sub_z;
     // Round down and save leftovers.
-    sub_x = modf(x, &x);
-    sub_y = modf(y, &y);
-    sub_z = modf(z, &z);
+    sub_x = modff(x, &x);
+    sub_y = modff(y, &y);
+    sub_z = modff(z, &z);
     // Report.
     if (x >= 0) gyro_incremental_output( x, self->actions_x_pos);
     else        gyro_incremental_output(-x, self->actions_x_neg);
@@ -260,21 +260,21 @@ void Gyro__reset(Gyro *self) {
     self->pressed_z_neg = false;
 }
 
-void Gyro__config_x(Gyro *self, double min, double max, Actions neg, Actions pos) {
+void Gyro__config_x(Gyro *self, float min, float max, Actions neg, Actions pos) {
     self->absolute_x_min = min;
     self->absolute_x_max = max;
     memcpy(self->actions_x_neg, neg, ACTIONS_LEN);
     memcpy(self->actions_x_pos, pos, ACTIONS_LEN);
 }
 
-void Gyro__config_y(Gyro *self, double min, double max, Actions neg, Actions pos) {
+void Gyro__config_y(Gyro *self, float min, float max, Actions neg, Actions pos) {
     self->absolute_y_min = min;
     self->absolute_y_max = max;
     memcpy(self->actions_y_neg, neg, ACTIONS_LEN);
     memcpy(self->actions_y_pos, pos, ACTIONS_LEN);
 }
 
-void Gyro__config_z(Gyro *self, double min, double max, Actions neg, Actions pos) {
+void Gyro__config_z(Gyro *self, float min, float max, Actions neg, Actions pos) {
     self->absolute_z_min = min;
     self->absolute_z_max = max;
     memcpy(self->actions_z_neg, neg, ACTIONS_LEN);
