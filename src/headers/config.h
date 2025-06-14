@@ -63,9 +63,15 @@
 #define CFG_HOLD_TIME 200  // Milliseconds.
 #define CFG_HOLD_LONG_TIME 2000  // Milliseconds.
 #define CFG_DOUBLE_PRESS_TIME 300  // Milliseconds.
-#define CFG_HOME_SLEEP_TIME 4000  // Milliseconds.
+#define CFG_HOME_SLEEP_TIME 5000  // Milliseconds.
 
 #define CFG_DHAT_DEBOUNCE_TIME 100  // Milliseconds.
+
+typedef enum _Problem {
+    PROBLEM_CALIBRATION = 1,
+    PROBLEM_GYRO = 2,
+    PROBLEM_LOW_BATTERY = 4,
+} Problem;
 
 typedef struct __packed _Config {
     uint8_t header;
@@ -189,8 +195,7 @@ void config_profile_default_custom(CtrlProfile *profile);
 void config_profile_overwrite(uint8_t indexTo, int8_t indexFrom);
 
 // Problems.
-void config_set_problem_calibration(bool state);
-void config_set_problem_gyro(bool state);
-void config_set_problem_battery_low(bool state);
+void config_set_problem(uint8_t flag, bool state);
 void config_ignore_problems();
-bool config_problems_are_pending();
+uint8_t config_get_problems();
+

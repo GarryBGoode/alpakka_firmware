@@ -33,9 +33,7 @@ uint8_t config_tune_mode = 0;
 uint8_t pcb_gen = 255;
 
 // Problems.
-bool problem_calibration = false;
-bool problem_gyro = false;
-bool problem_battery_low = false;
+uint8_t problems_state = 0;  // Bitmask with Problem enum.
 
 
 void config_load() {
@@ -437,7 +435,7 @@ void config_calibrate() {
     }
     info("\n");
     config_calibrate_execute();
-    config_set_problem_calibration(false);
+    config_set_problem(PROBLEM_CALIBRATION, false);
     led_set_mode(LED_MODE_IDLE);
     info("Calibration completed\n");
     logging_set_onloop(true);
@@ -584,44 +582,27 @@ void config_set_thumbstick_smooth_samples(uint8_t value) {
     thumbstick_update_smooth_samples();
 }
 
-void config_set_problem_calibration(bool state) {
-    problem_calibration = state;
-    led_show();
-}
-
-void config_set_problem_gyro(bool state) {
-    problem_gyro = state;
-    led_show();
-}
-
-void config_set_problem_battery_low(bool state) {
-    if (state == problem_battery_low) return;
-    problem_battery_low = state;
+void config_set_problem(uint8_t flag, bool state) {
+    problems_state = bitmask_set(problems_state, flag, state);
     led_show();
 }
 
 void config_ignore_problems() {
-    if (!config_problems_are_pending()) return;
+    if (!config_get_problems()) return;
     warn("User requested to ignore problems\n");
-    problem_calibration = false;
-    problem_gyro = false;
-    problem_battery_low = false;
+    problems_state = 0;
     led_show();
 }
 
-bool config_problems_are_pending() {
-    return (
-        problem_calibration ||
-        problem_gyro ||
-        problem_battery_low
-    );
+uint8_t config_get_problems() {
+    return problems_state;
 }
 
 void config_alert_if_not_calibrated() {
     if (config_cache.offset_ts_lx == 0 && config_cache.offset_ts_ly == 0) {
         warn("The controller is not calibrated\n");
         warn("Please run calibration\n");
-        config_set_problem_calibration(true);
+        config_set_problem(PROBLEM_CALIBRATION, true);
     }
 }
 

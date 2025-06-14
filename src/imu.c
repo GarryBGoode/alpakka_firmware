@@ -89,7 +89,7 @@ void imu_init_single(uint8_t cs, uint8_t gyro_conf) {
     info("  IMU cs=%i id=0x%02x xl=0b%08i g=0b%08i\n", cs, id, bin(xl), bin(g));
     if (id == 0x00) {
         warn("Gyro was not able to initialize\n");
-        config_set_problem_gyro(true);
+        config_set_problem(PROBLEM_GYRO, true);
     }
 }
 
@@ -117,12 +117,15 @@ void imu_power_off() {
 Vector imu_read_gyro_bits(uint8_t cs) {
     uint8_t buf[6];
     bus_spi_read(cs, IMU_READ | IMU_OUTX_L_G, buf, 6);
+
     int16_t y =  (int16_t)(((uint16_t)buf[1] << 8) | (uint16_t)buf[0]);
     int16_t z =  (int16_t)(((uint16_t)buf[3] << 8) | (uint16_t)buf[2]);
     int16_t x = -(int16_t)(((uint16_t)buf[5] << 8) | (uint16_t)buf[4]);
+    
     float offset_x = (cs==PIN_SPI_CS0) ? imu_calib0.gyro[0].offset : imu_calib1.gyro[0].offset;
     float offset_y = (cs==PIN_SPI_CS0) ? imu_calib0.gyro[1].offset : imu_calib1.gyro[1].offset;
     float offset_z = (cs==PIN_SPI_CS0) ? imu_calib0.gyro[2].offset : imu_calib1.gyro[2].offset;
+
     #ifdef DEVICE_ALPAKKA_V0
         return (Vector){
             (float)x - offset_x,
@@ -141,12 +144,15 @@ Vector imu_read_gyro_bits(uint8_t cs) {
 Vector imu_read_accel_bits(uint8_t cs) {
     uint8_t buf[6];
     bus_spi_read(cs, IMU_READ | IMU_OUTX_L_XL, buf, 6);
+
     int16_t x =  (int16_t)(((uint16_t)buf[1] << 8) + (uint16_t)buf[0]);
     int16_t y =  (int16_t)(((uint16_t)buf[3] << 8) + (uint16_t)buf[2]);
     int16_t z =  (int16_t)(((uint16_t)buf[5] << 8) + (uint16_t)buf[4]);
+
     float offset_x = (cs==PIN_SPI_CS0) ? offset_accel_0_x : offset_accel_1_x;
     float offset_y = (cs==PIN_SPI_CS0) ? offset_accel_0_y : offset_accel_1_y;
     float offset_z = (cs==PIN_SPI_CS0) ? offset_accel_0_z : offset_accel_1_z;
+
     #ifdef DEVICE_ALPAKKA_V0
         return (Vector){
             (float)x - offset_x,
