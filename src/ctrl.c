@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (C) 2022, Input Labs Oy.
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "ctrl.h"
-#include "thumbstick.h"
 #include "config.h"
-#include "common.h"
 #include "version.h"
 #include "logging.h"
 

@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (C) 2022, Input Labs Oy.
 
-#include <stdio.h>
 #include "esp.h"
 #include "config.h"
 #include "pin.h"
-#include "power.h"
-#include "led.h"
 
 void esp_log_state() {
     #ifdef DEVICE_HAS_MARMOTA

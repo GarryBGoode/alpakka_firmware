@@ -35,7 +35,6 @@ The intended use of the internal API is as follows:
 #include "pin.h"
 #include "config.h"
 #include "common.h"
-#include "logging.h"
 
 LEDMode led_mode = LED_MODE_IDLE;
 

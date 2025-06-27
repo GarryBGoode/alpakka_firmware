@@ -6,9 +6,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include "logging.h"
-#include "loop.h"
 #include "webusb.h"
-#include "common.h"
 #include "config.h"
 
 LogLevel logging_level = LOG_INFO;

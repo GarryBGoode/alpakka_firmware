@@ -4,8 +4,6 @@
 #pragma once
 #include <stdbool.h>
 #include <pico/time.h>
-#include "common.h"
-#include "xinput.h"
 
 #define MODIFIER_INDEX 154
 #define MOUSE_INDEX 162

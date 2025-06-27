@@ -2,6 +2,7 @@
 // Copyright (C) 2022, Input Labs Oy.
 
 #pragma once
+#include <stdint.h>
 
 typedef uint8_t Glyph[5];
 

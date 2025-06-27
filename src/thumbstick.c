@@ -12,10 +12,8 @@
 #include "thumbstick.h"
 #include "common.h"
 #include "hid.h"
-#include "led.h"
 #include "profile.h"
 #include "logging.h"
-#include "webusb.h"
 
 float offset_lx = 0;
 float offset_ly = 0;

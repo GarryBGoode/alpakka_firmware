@@ -7,7 +7,6 @@
 #include <hardware/gpio.h>
 #include "button.h"
 #include "config.h"
-#include "profile.h"
 #include "hid.h"
 #include "bus.h"
 #include "pin.h"

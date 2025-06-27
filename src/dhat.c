@@ -9,7 +9,6 @@
 #include "button.h"
 #include "dhat.h"
 #include "hid.h"
-#include "led.h"
 
 bool Dhat__update(Dhat *self) {
     // Evaluate real buttons.
