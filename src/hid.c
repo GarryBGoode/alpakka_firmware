@@ -48,7 +48,6 @@ Flow diagram: docs/replay.md
 #include "ctrl.h"
 #include "hid.h"
 #include "wireless.h"
-#include "led.h"
 #include "profile.h"
 #include "xinput.h"
 #include "common.h"

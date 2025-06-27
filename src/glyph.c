@@ -9,7 +9,6 @@ When packing this information into the Ctrl protocol we want to be as space
 efficient as possible, and encode/decode a glyph into a single 8bit number.
 */
 
-#include "common.h"
 #include "glyph.h"
 #include "thumbstick.h"
 

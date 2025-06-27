@@ -2,7 +2,6 @@
 // Copyright (C) 2022, Input Labs Oy.
 
 #include <stdio.h>
-#include <pico/stdlib.h>
 #include "pico/rand.h"
 
 uint32_t bin(uint8_t k) {

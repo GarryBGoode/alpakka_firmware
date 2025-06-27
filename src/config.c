@@ -9,7 +9,6 @@
 #include "config.h"
 #include "nvm.h"
 #include "led.h"
-#include "pin.h"
 #include "hid.h"
 #include "imu.h"
 #include "thumbstick.h"

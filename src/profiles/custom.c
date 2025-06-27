@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include "hid.h"
-#include "pin.h"
 #include "webusb.h"
 #include "button.h"
 #include "thumbstick.h"

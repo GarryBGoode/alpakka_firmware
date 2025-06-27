@@ -5,17 +5,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pico/stdlib.h>
-#include <hardware/gpio.h>
-#include <hardware/i2c.h>
-#include <hardware/spi.h>
 #include "imu.h"
 #include "config.h"
 #include "common.h"
 #include "pin.h"
 #include "bus.h"
-#include "touch.h"
-#include "hid.h"
-#include "led.h"
 #include "vector.h"
 #include "logging.h"
 

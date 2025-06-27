@@ -2,7 +2,6 @@
 // Copyright (C) 2022, Input Labs Oy.
 
 #pragma once
-#include "common.h"
 #include "button.h"
 #include "glyph.h"
 

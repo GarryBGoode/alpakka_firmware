@@ -21,6 +21,7 @@
 #include "common.h"
 #include "pin.h"
 #include "power.h"
+#include "webusb.h"
 
 static DeviceMode device_mode = WIRED;
 static bool battery_low = false;

@@ -8,8 +8,6 @@
 #include "wireless.h"
 #include "config.h"
 #include "pin.h"
-#include "led.h"
-#include "bus.h"
 #include "hid.h"
 #include "loop.h"
 #include "logging.h"

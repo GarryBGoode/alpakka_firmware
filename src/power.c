@@ -7,8 +7,6 @@
 #include <pico/sleep.h>
 #include <hardware/watchdog.h>
 #include <hardware/gpio.h>
-#include <hardware/xosc.h>
-#include <hardware/regs/io_bank0.h>
 #include "pin.h"
 #include "config.h"
 #include "led.h"

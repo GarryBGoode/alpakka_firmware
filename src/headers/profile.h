@@ -7,8 +7,6 @@
 #include "dhat.h"
 #include "rotary.h"
 #include "gyro.h"
-#include "webusb.h"
-#include "common.h"
 
 #define PROFILE_SLOTS 14
 

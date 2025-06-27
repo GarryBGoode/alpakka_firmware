@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <pico/stdlib.h>
 #include "ctrl.h"
-#include "common.h"
 
 #define ACTIONS_LEN 4
 
