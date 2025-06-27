@@ -34,6 +34,9 @@ float offset_accel_1_x;
 float offset_accel_1_y;
 float offset_accel_1_z;
 
+float imu_gyro0_weight[3] = {0.5f, 0.5f, 0.5f};
+float imu_gyro1_weight[3] = {0.5f, 0.5f, 0.5f};
+
 ImuCalib imu_calib0 = {
     .gyro = {
         {0, 0, 0}, // Gyro offset  
@@ -121,7 +124,7 @@ Vector imu_read_gyro_bits(uint8_t cs) {
     int16_t y =  (int16_t)(((uint16_t)buf[1] << 8) | (uint16_t)buf[0]);
     int16_t z =  (int16_t)(((uint16_t)buf[3] << 8) | (uint16_t)buf[2]);
     int16_t x = -(int16_t)(((uint16_t)buf[5] << 8) | (uint16_t)buf[4]);
-    
+
     float offset_x = (cs==PIN_SPI_CS0) ? imu_calib0.gyro[0].offset : imu_calib1.gyro[0].offset;
     float offset_y = (cs==PIN_SPI_CS0) ? imu_calib0.gyro[1].offset : imu_calib1.gyro[1].offset;
     float offset_z = (cs==PIN_SPI_CS0) ? imu_calib0.gyro[2].offset : imu_calib1.gyro[2].offset;
@@ -187,29 +190,26 @@ Vector imu_read_gyro_burst(uint8_t cs, uint8_t samples) {
 Vector imu_read_gyro() {
     Vector gyro0 = imu_read_gyro_bits(IMU0);
     Vector gyro1 = imu_read_gyro_bits(IMU1);
-    // sum of variances
-    Vector variance_div = {
-        imu_calib0.gyro[0].variance + imu_calib1.gyro[0].variance/16,
-        imu_calib0.gyro[1].variance + imu_calib1.gyro[1].variance/16,
-        imu_calib0.gyro[2].variance + imu_calib1.gyro[2].variance/16
-    };
-    // weight of IMU0 proportional to variance of IMU1
-    // the more noise on IMU1 the more we use IMU0...
-    // see also: Kalman Filter.
     Vector weight_0 = {
-        imu_calib1.gyro[0].variance/ variance_div.x/16,
-        imu_calib1.gyro[1].variance/ variance_div.y/16,
-        imu_calib1.gyro[2].variance/ variance_div.z/16,
+        imu_gyro0_weight[0],
+        imu_gyro0_weight[1],
+        imu_gyro0_weight[2]
     };
+
     // IMU 0 is on 500dps, IMU 1 is on 125dps.
     // when IMU 0 is on 20% of its range or higher, IMU 1 is on 80% of its range
     // then IMU 0 takes over 100% of the weight.
-    weight_0.x = fabsf(gyro0.x)>0.20*32768 ? weight_0.x : 1;
-    weight_0.y = fabsf(gyro0.y)>0.20*32768 ? weight_0.y : 1;
-    weight_0.z = fabsf(gyro0.z)>0.20*32768 ? weight_0.z : 1;
-    float x = (gyro0.x * weight_0.x) + (gyro1.x * (1.0-weight_0.x) / 4);
-    float y = (gyro0.y * weight_0.y) + (gyro1.y * (1.0-weight_0.y) / 4);
-    float z = (gyro0.z * weight_0.z) + (gyro1.z * (1.0-weight_0.z) / 4);
+    // When vector-absolute value saturates, it is safer to switch all axes.
+    
+    if (gyro0.x*gyro0.x + gyro0.y*gyro0.y + gyro0.z*gyro0.z > 0.20f*0.20f*GYRO_MAXVAL_INT*GYRO_MAXVAL_INT) {
+        weight_0.x = 1;
+        weight_0.y = 1;
+        weight_0.z = 1;
+    }
+
+    float x = (gyro0.x * weight_0.x) + (gyro1.x * (1.0f-weight_0.x) / 4);
+    float y = (gyro0.y * weight_0.y) + (gyro1.y * (1.0f-weight_0.y) / 4);
+    float z = (gyro0.z * weight_0.z) + (gyro1.z * (1.0f-weight_0.z) / 4);
     return (Vector){x, y, z};
 }
 
@@ -348,6 +348,26 @@ void imu_load_calibration() {
     imu_calib1.accel[0].stddev = config->stddev_accel_1_x;
     imu_calib1.accel[1].stddev = config->stddev_accel_1_y;
     imu_calib1.accel[2].stddev = config->stddev_accel_1_z;
+
+
+    // sum of variances
+    Vector variance_div = {
+        imu_calib0.gyro[0].variance + imu_calib1.gyro[0].variance/16,
+        imu_calib0.gyro[1].variance + imu_calib1.gyro[1].variance/16,
+        imu_calib0.gyro[2].variance + imu_calib1.gyro[2].variance/16
+    };
+    // weight of IMU0 proportional to variance of IMU1
+    // the more noise on IMU1 the more we use IMU0...
+    // see also: Kalman Filter.
+    
+    imu_gyro0_weight[0] = imu_calib1.gyro[0].variance/ variance_div.x/16;
+    imu_gyro0_weight[1] = imu_calib1.gyro[1].variance/ variance_div.y/16;
+    imu_gyro0_weight[2] = imu_calib1.gyro[2].variance/ variance_div.z/16;
+    
+    imu_gyro1_weight[0] = 1 - imu_gyro0_weight[0];
+    imu_gyro1_weight[1] = 1 - imu_gyro0_weight[1];
+    imu_gyro1_weight[2] = 1 - imu_gyro0_weight[2];
+    
 }
 
 void imu_reset_calibration() {

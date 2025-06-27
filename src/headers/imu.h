@@ -87,7 +87,9 @@
 #define ACCEL_SENS_8G 0.00239364f
 #define ACCEL_SENS_16G 0.00478728f
 
-
+// Highest value in integer, needed to reach the respective dps range value.
+// E.g. GYRO_SENS_DEGPS_500 * 28571 ~= 500
+#define GYRO_MAXVAL_INT 28571
 
 
 

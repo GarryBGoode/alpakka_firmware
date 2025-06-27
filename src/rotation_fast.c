@@ -6,6 +6,7 @@
 // A value of 0.8 means the filter will converge in about 3x0.8 = 2.4 seconds.
 float comp_tau = 1/0.8f;
 
+
 void update_rotation_state(RotationStateVector *state, const float *gyro, const float *accel, float dt)
 {   
     /* This is a rotation scheme that tracks the orientation of the 'up' unit vector,
@@ -20,23 +21,20 @@ void update_rotation_state(RotationStateVector *state, const float *gyro, const 
     // so we can calculate it by projecting the gyro vector onto the current 'up' vector.
     // The 'up' vector is represented by the state vector (ux, uy, uz).
     float yaw_value = state->ux*gyro_x + state->uy*gyro_y + state->uz*gyro_z;
-    // The roll and pitch components of the gyro vector are the components that are not aligned with the 'up' vector.
-    float gyro_rollpitch_x = gyro_x - state->ux * yaw_value;
-    float gyro_rollpitch_y = gyro_y - state->uy * yaw_value;
-    float gyro_rollpitch_z = gyro_z - state->uz * yaw_value;
+    
 
     float accel_norm = sqrtf(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
-    // Cross product of the gyro roll/pitch vector with the current 'up' vector gives us the rotation vector
+    // Cross product of the gyro vector with the current 'up' vector gives us the rotation vector
     // that we need to apply to the 'up' vector to adjust it.
-    float wcross_vector[3] = {gyro_rollpitch_z*state->uy - gyro_rollpitch_y*state->uz,
-                              gyro_rollpitch_x*state->uz - gyro_rollpitch_z*state->ux,
-                              gyro_rollpitch_y*state->ux - gyro_rollpitch_x*state->uy};
+    float wcross_vector[3] = {gyro_z*state->uy - gyro_y*state->uz,
+                              gyro_x*state->uz - gyro_z*state->ux,
+                              gyro_y*state->ux - gyro_x*state->uy};
     state->phi += yaw_value * dt;
 
     state->ux += wcross_vector[0] * dt;
     state->uy += wcross_vector[1] * dt;
     state->uz += wcross_vector[2] * dt;
-    
+
     // Adjusting the 'up' vector using the accelerometer data and complementary filter.
     // Only perform the adjustment if the accelerometer data is within a reasonable range.
     if (accel_norm>8 && accel_norm<12) {
