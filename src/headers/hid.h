@@ -311,6 +311,7 @@ void hid_macro(uint8_t index);
 // Mouse axis.
 void hid_mouse_move(int16_t x, int16_t y);
 void hid_mouse_wheel(int8_t z);
+void hid_get_mouse_position(int16_t *x, int16_t *y);
 
 // Gamepad.
 bool hid_is_axis(uint8_t key);

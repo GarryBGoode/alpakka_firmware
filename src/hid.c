@@ -288,7 +288,13 @@ void hid_mouse_move(int16_t x, int16_t y) {
     mouse_x += x;
     mouse_y += y;
     synced_mouse = false;
-    profile_set_reported_inputs(true);
+    // profile_set_reported_inputs(true);
+}
+
+void hid_get_mouse_position(int16_t *x, int16_t *y) {
+    // Check null pointers to avoid dereferencing them.
+    if (x!=NULL) *x = mouse_x;
+    if (y!=NULL) *y = mouse_y;
 }
 
 void hid_gamepad_axis(GamepadAxis axis, double value) {

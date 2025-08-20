@@ -50,3 +50,6 @@ Gyro Gyro_ (
 );
 
 void gyro_update_sensitivity();
+void Gyro_update_world();
+void Gyro_check_offset();
+bool Gyro__is_engaged(Gyro *self);

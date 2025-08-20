@@ -4,7 +4,7 @@
 // Time constant for the comlementary filter.
 // Tune the denominator to adjust the filter's response time.
 // A value of 0.8 means the filter will converge in about 3x0.8 = 2.4 seconds.
-float comp_tau = 1/0.8f;
+float comp_tau = 1/2.0f;
 
 
 void update_rotation_state(RotationStateVector *state, const float *gyro, const float *accel, float dt)
@@ -23,7 +23,9 @@ void update_rotation_state(RotationStateVector *state, const float *gyro, const 
     float yaw_value = state->ux*gyro_x + state->uy*gyro_y + state->uz*gyro_z;
     
 
-    float accel_norm = sqrtf(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
+    // float accel_norm = sqrtf(accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]);
+    // Accel is expected to be 9.81 (G). It is only accepted if it's close anyway.
+    float accel_norm = (accel[0] * accel[0] + accel[1] * accel[1] + accel[2] * accel[2]) / 9.81;
     // Cross product of the gyro vector with the current 'up' vector gives us the rotation vector
     // that we need to apply to the 'up' vector to adjust it.
     float wcross_vector[3] = {gyro_z*state->uy - gyro_y*state->uz,
