@@ -32,9 +32,11 @@
 #define IMU_CTRL8_XL_LP  0b10000000  // Accelerometer value for low pass filter.
 #define IMU_CTRL2_G_OFF  0b00000000  // Gyroscope value power off.
 #define IMU_CTRL2_G_125  0b10100010  // Gyroscope value for 125 dps.
-#define IMU_CTRL2_G_250  0b10100011  // Gyroscope value for 125 dps.
+#define IMU_CTRL2_G_250  0b10100000  // Gyroscope value for 125 dps.
 #define IMU_CTRL2_G_500  0b10100100  // Gyroscope value for 500 dps.
-#define IMU_CTRL2_G_1000 0b10100101  // Gyroscope value for 1000 dps.
+#define IMU_CTRL2_G_1000 0b10101000  // Gyroscope value for 1000 dps.
+#define IMU_CTRL2_G_2000 0b10101100  // Gyroscope value for 2000 dps.
+#define IMU_CTRL2_G_4000 0b10100001  // Gyroscope value for 4000 dps.
 
 #define GYRO_LPF1_ENABLE_CTRL4_C  0b00000010  // enable LPF1 in CTRL4_C register
 #define GYRO_LPF1_DISABLE_CTRL4_C 0b00000000 // disable LPF1 in CTRL4_C register
