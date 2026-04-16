@@ -11,7 +11,7 @@
 #define ESP_BOOTLOADER_BAUD 74880
 #define ESP_FLASHER_BAUD 115200
 #define ESP_FLASHER_BAUD_MAX (115200 * 4)
-#define ESP_DATA_BAUD (115200 * 8)
+#define ESP_DATA_BAUD 2400000
 #define ESP_RESTART_SETTLE 100  // Milliseconds.
 
 void esp_init();

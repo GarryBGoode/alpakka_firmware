@@ -60,6 +60,11 @@
 
 #define CFG_DHAT_DEBOUNCE_TIME 100  // Milliseconds.
 
+// When true, incremental (normal mouse mode) gyro will be corrected by world frame directions.
+// This results in a behavior similar to laser-pointer aiming, though ratcheting still works the same.
+// When false, incremental gyro mode is fixed to local (controller) space.
+#define CFG_INCREMENTAL_MODE_WORLD_ROT true
+
 typedef enum _Protocol {
     PROTOCOL_UNDEFINED = -1,
     PROTOCOL_XINPUT_WIN = 0,

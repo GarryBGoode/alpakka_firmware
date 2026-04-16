@@ -204,44 +204,58 @@ void Gyro__report_incremental(Gyro *self) {
     float y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier;
     float z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier;
 
+    bool active = (self->mode == GYRO_MODE_TOUCH_ON && Gyro__is_engaged(self)) ||
+        (self->mode == GYRO_MODE_TOUCH_OFF && !Gyro__is_engaged(self)) ||
+        (self->mode == GYRO_MODE_ALWAYS_ON);
+    // static bool active_prev = false;
 
-    // compensate tick frequency.
-    x *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
-    y *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
-    z *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
+    if(active)
+    {
+        // compensate tick frequency.
+        x *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
+        y *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
+        z *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
 
-    //Additional processing.
-    float t = CFG_IMU_DEADZONE*0;
-    float k = CFG_IMU_DEADZONE_STRENGTH;
-    if      (x > 0 && x <  t) x =  hssnf(t, k,  x);
-    else if (x < 0 && x > -t) x = -hssnf(t, k, -x);
-    if      (y > 0 && y <  t) y =  hssnf(t, k,  y);
-    else if (y < 0 && y > -t) y = -hssnf(t, k, -y);
-    if      (z > 0 && z <  t) z =  hssnf(t, k,  z);
-    else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
+        //Additional processing.
+        float t = CFG_IMU_DEADZONE;
+        float k = CFG_IMU_DEADZONE_STRENGTH;
+        if      (x > 0 && x <  t) x =  hssnf(t, k,  x);
+        else if (x < 0 && x > -t) x = -hssnf(t, k, -x);
+        if      (y > 0 && y <  t) y =  hssnf(t, k,  y);
+        else if (y < 0 && y > -t) y = -hssnf(t, k, -y);
+        if      (z > 0 && z <  t) z =  hssnf(t, k,  z);
+        else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
 
-    // Reintroduce subpixel leftovers.
-    x += sub_x;
-    y += sub_y;
-    z += sub_z;
-    // Round down and save leftovers.
-    sub_x = modff(x, &x);
-    sub_y = modff(y, &y);
-    sub_z = modff(z, &z);
-    // Report.
-    if (x >= 0) gyro_incremental_output( x, self->actions_x_pos);
-    else        gyro_incremental_output(-x, self->actions_x_neg);
-    if (y >= 0) gyro_incremental_output( y, self->actions_y_pos);
-    else        gyro_incremental_output(-y, self->actions_y_neg);
-    if (z >= 0) gyro_incremental_output( z, self->actions_z_pos);
-    else        gyro_incremental_output(-z, self->actions_z_neg);
+        // Reintroduce subpixel leftovers.
+        x += sub_x;
+        y += sub_y;
+        z += sub_z;
+        // Round down and save leftovers.
+        sub_x = modff(x, &x);
+        sub_y = modff(y, &y);
+        sub_z = modff(z, &z);
+        // Report.
+        if (x >= 0) gyro_incremental_output( x, self->actions_x_pos);
+        else        gyro_incremental_output(-x, self->actions_x_neg);
+        if (y >= 0) gyro_incremental_output( y, self->actions_y_pos);
+        else        gyro_incremental_output(-y, self->actions_y_neg);
+        if (z >= 0) gyro_incremental_output( z, self->actions_z_pos);
+        else        gyro_incremental_output(-z, self->actions_z_neg);
+    }
+    else
+    {
+        sub_x = 0;
+        sub_y = 0;
+        sub_z = 0;
+    }
 }
 
 void Gyro__report_incremental_rot_based(Gyro *self) {
     static RotationStateVector rotation_ref = {0, 0, 1, 0};
-    float sens_x = CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier /GYRO_SENS_RADPS_500*REFERENCE_TICK_FREQUENCY;
-    float sens_y = CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier /GYRO_SENS_RADPS_500*REFERENCE_TICK_FREQUENCY;
-    float sens_z = CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier /GYRO_SENS_RADPS_500*REFERENCE_TICK_FREQUENCY;
+    float sens_mult_common = sensitivity_multiplier /GYRO_SENS_RADPS_500*REFERENCE_TICK_FREQUENCY;
+    float sens_x = CFG_GYRO_SENSITIVITY_X * sens_mult_common;
+    float sens_y = CFG_GYRO_SENSITIVITY_Y * sens_mult_common;
+    float sens_z = CFG_GYRO_SENSITIVITY_Z * sens_mult_common;
     bool active = (self->mode == GYRO_MODE_TOUCH_ON && Gyro__is_engaged(self)) ||
             (self->mode == GYRO_MODE_TOUCH_OFF && !Gyro__is_engaged(self)) ||
             (self->mode == GYRO_MODE_ALWAYS_ON);
@@ -375,7 +389,11 @@ Gyro Gyro_ (
     Gyro gyro;
     gyro.is_engaged = Gyro__is_engaged;
     gyro.report = Gyro__report;
-    gyro.report_incremental = Gyro__report_incremental_rot_based;
+    #if CFG_INCREMENTAL_MODE_WORLD_ROT
+        gyro.report_incremental = Gyro__report_incremental_rot_based;
+    #else
+        gyro.report_incremental = Gyro__report_incremental;
+    #endif
     gyro.report_absolute = Gyro__report_absolute_fast;
     gyro.reset = Gyro__reset;
     gyro.config_x = Gyro__config_x;
