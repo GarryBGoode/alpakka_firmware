@@ -65,7 +65,7 @@ void thumbstick_update_offsets() {
 // Refresh runtime smoothing factor with value from config.
 void thumbstick_update_smooth_samples() {
     Config *config = config_read();
-    thumbstick_smooth_samples = config->thumbstick_smooth_samples;
+    thumbstick_smooth_samples = config->thumbstick_smooth_samples * CFG_TICK_FREQUENCY/REFERENCE_TICK_FREQUENCY;
 }
 
 void thumbstick_calibrate_each(uint8_t pin_x, uint8_t pin_y, float *result_x, float *result_y) {
@@ -577,12 +577,13 @@ void Thumbstick__report(Thumbstick *self) {
     }
     // Calculate trigonometry.
     float angle = atan2(x, -y) * (180 / M_PI);
-    float raw_radius = sqrt(powf(raw_x, 2) + powf(raw_y, 2));
+    float raw_radius = sqrt(raw_x*raw_x + raw_y*raw_y);
     float radius = sqrt(powf(x, 2) + powf(y, 2));
     radius = ramp_low(radius, deadzone);  // Deadzone.
     radius = ramp_inv(radius, self->antideadzone);  // Antideadzone.
     radius = constrain(radius, 0, 1);
     radius = felix_curve(radius, self->accel_curve);  // Acceleration.
+
     if (raw_radius < deadzone) radius = 0;
     x = sin(radians(angle)) * radius;
     y = -cos(radians(angle)) * radius;

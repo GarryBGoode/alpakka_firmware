@@ -18,18 +18,18 @@ struct Gyro_struct {
     void (*report_incremental) (Gyro *self);
     void (*report_absolute) (Gyro *self);
     void (*reset) (Gyro *self);
-    void (*config_x) (Gyro *self, double min, double max, Actions neg, Actions pos, float sens);
-    void (*config_y) (Gyro *self, double min, double max, Actions neg, Actions pos, float sens);
-    void (*config_z) (Gyro *self, double min, double max, Actions neg, Actions pos, float sens);
+    void (*config_x) (Gyro *self, float min, float max, Actions neg, Actions pos, float sens);
+    void (*config_y) (Gyro *self, float min, float max, Actions neg, Actions pos, float sens);
+    void (*config_z) (Gyro *self, float min, float max, Actions neg, Actions pos, float sens);
     GyroMode mode;
     uint8_t engage;
     Button engage_button;
-    double absolute_x_min;
-    double absolute_y_min;
-    double absolute_z_min;
-    double absolute_x_max;
-    double absolute_y_max;
-    double absolute_z_max;
+    float absolute_x_min;
+    float absolute_y_min;
+    float absolute_z_min;
+    float absolute_x_max;
+    float absolute_y_max;
+    float absolute_z_max;
     bool pressed_x_pos;
     bool pressed_y_pos;
     bool pressed_z_pos;
@@ -53,3 +53,6 @@ Gyro Gyro_ (
 );
 
 void gyro_update_sensitivity();
+void Gyro_update_world();
+void Gyro_check_offset();
+bool Gyro__is_engaged(Gyro *self);

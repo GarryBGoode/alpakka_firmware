@@ -70,12 +70,12 @@ uint16_t alarms = 0;
 alarm_pool_t *alarm_pool;
 
 uint8_t state_matrix[256] = {0,};
-double mouse_x = 0;
-double mouse_y = 0;
-double mouse_scroll_x = 0;
-double mouse_scroll_y = 0;
-double gamepad_axis[6] = {0,};
-double gamepad_axis_last[6] = {0,};
+float mouse_x = 0;
+float mouse_y = 0;
+float mouse_scroll_x = 0;
+float mouse_scroll_y = 0;
+float gamepad_axis[6] = {0,};
+float gamepad_axis_last[6] = {0,};
 
 // Replay reports.
 static KeyboardReport last_report_keyboard;
@@ -88,6 +88,8 @@ static XInputReport last_report_xinput;
 static bool report_was_sent[4] = {false,};  // Prevent replay if no report was ever sent.
 static uint8_t cycles_without_reporting[4] = {0,};  // Cycles since the last report.
 static uint8_t replayed_ntimes[4] = {0,};  // How many times the last report was replayed.
+
+uint32_t idle_counter = 0;  // Counter to track idle time.
 
 void hid_set_allow_communication(bool value) {
     hid_allow_communication = value;
@@ -296,21 +298,21 @@ bool hid_is_gamepad_axis(uint8_t action) {
     return is_between(action, GAMEPAD_AXIS_INDEX, PROC_INDEX-1);
 }
 
-void hid_mouse_move(double x, double y) {
+void hid_mouse_move(float x, float y) {
     mouse_x += x;
     mouse_y += y;
     synced_mouse = false;
     profile_set_reported_inputs(true);
 }
 
-void hid_mouse_scroll(double x, double y) {
+void hid_mouse_scroll(float x, float y) {
     mouse_scroll_x += x;
     mouse_scroll_y += y;
     synced_mouse = false;
     profile_set_reported_inputs(true);
 }
 
-void hid_gamepad_axis(GamepadAxis axis, double value) {
+void hid_gamepad_axis(GamepadAxis axis, float value) {
     gamepad_axis[axis] += value;  // Multiple inputs can be combined.
     if (value != 0) profile_set_reported_inputs(true);
 }
@@ -323,12 +325,12 @@ MouseReport hid_get_mouse_report() {
     }
     mouse_scroll_y += state_matrix[MOUSE_SCROLL_UP] - state_matrix[MOUSE_SCROLL_DOWN];
     // Manage remainders.
-    double mod_x = 0;
-    double mod_y = 0;
-    double mod_scroll_y = 0;
-    mouse_x = modf(mouse_x, &mod_x);
-    mouse_y = modf(mouse_y, &mod_y);
-    mouse_scroll_y = modf(mouse_scroll_y, &mod_scroll_y);
+    float mod_x = 0;
+    float mod_y = 0;
+    float mod_scroll_y = 0;
+    mouse_x = modff(mouse_x, &mod_x);
+    mouse_y = modff(mouse_y, &mod_y);
+    mouse_scroll_y = modff(mouse_scroll_y, &mod_scroll_y);
     // Reset.
     state_matrix[MOUSE_SCROLL_UP] = 0;
     state_matrix[MOUSE_SCROLL_DOWN] = 0;
@@ -362,8 +364,8 @@ KeyboardReport hid_get_keyboard_report() {
     return report;
 }
 
-double hid_axis(
-    double value,
+float hid_axis(
+    float value,
     uint8_t matrix_index_pos,
     uint8_t matrix_index_neg
 ) {
@@ -569,6 +571,7 @@ bool hid_should_replay(ReportType type) {
 }
 
 ReportType hid_get_priority() {
+    static uint8_t cycle_i = 0;
     // Not all events are sent everytime, they are delivered based on their
     // priority ratio and how long they have been queueing.
     // For example thumbstick movement may be queued for some cycles if there
@@ -592,6 +595,18 @@ ReportType hid_get_priority() {
         if (config_get_protocol() == PROTOCOL_GENERIC) return REPORT_GAMEPAD;
         else return REPORT_XINPUT;
     }
+    // if all was synced, just cycle through the reports anyway.
+    if (cycle_i == 0) {
+        cycle_i = 1;
+        return REPORT_KEYBOARD;
+    } else if (cycle_i == 1) {
+        cycle_i = 2;
+        return REPORT_MOUSE;
+    } else if (cycle_i == 2) {
+        cycle_i = 0;
+        if (config_get_protocol() == PROTOCOL_GENERIC) return REPORT_GAMEPAD;
+        else return REPORT_XINPUT;
+    } 
     return 0;
 }
 
@@ -619,6 +634,7 @@ bool hid_report_wired() {
 }
 
 bool hid_report_wireless() {
+    if (hid_idle_timeout()) power_dormant(); // If idle long enough, go to sleep.
     if (!hid_allow_communication) return true;
     ReportType device_to_report = hid_get_priority();
     if (device_to_report == REPORT_KEYBOARD) hid_report_keyboard(false);
@@ -642,7 +658,7 @@ bool hid_report_wireless() {
 }
 
 void hid_report_dongle(uint8_t report_id, uint8_t* payload) {
-    tud_task();
+
     if (tud_ready()) {
         if (report_id == REPORT_KEYBOARD) {
             if (tud_hid_ready()) {
@@ -697,4 +713,37 @@ void hid_thanks() {
 void hid_init() {
     info("INIT: HID\n");
     alarm_pool = alarm_pool_create(2, 255);
+}
+
+
+bool hid_idle_timeout(){
+    static uint8_t state_matrix_prev[256] = {0,};
+    static int16_t mouse_x_prev = 0;
+    static int16_t mouse_y_prev = 0;
+    static float gamepad_axis_prev[6] = {0,};
+    bool changed = false;
+    // Check if the state matrix has changed.
+    if (memcmp(state_matrix, state_matrix_prev, sizeof(state_matrix)) != 0) changed = true;
+    // Check if the mouse position has changed.
+    if (mouse_x != mouse_x_prev || mouse_y != mouse_y_prev) changed = true;
+    // Check if the gamepad axis has changed.
+    for (uint8_t i = 0; i < 6; i++) {
+        if (gamepad_axis[i] != gamepad_axis_prev[i]) {
+            changed = true;
+            break;
+        }
+    }
+    // Update previous state variables.
+    memcpy(state_matrix_prev, state_matrix, sizeof(state_matrix));
+    mouse_x_prev = mouse_x;
+    mouse_y_prev = mouse_y;
+    memcpy(gamepad_axis_prev, gamepad_axis, sizeof(gamepad_axis));
+    
+    if (changed) {
+        idle_counter = 0;  // Reset idle counter if there was any change.
+    } else {
+        idle_counter++;  // Increment idle counter if no changes.
+    }
+    if(idle_counter > HID_IDLE_TIMEOUT && HID_IDLE_TIMEOUT>0) return true;
+    else return false;  // Return true if idle timeout is reached.
 }

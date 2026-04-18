@@ -17,6 +17,10 @@
 #define GAMEPAD_AXIS_INDEX_END  PROC_INDEX - 1
 #define PROC_INDEX_END 255
 
+// timeout for going to sleep in wireless mode
+// set to 0 to disable
+#define HID_IDLE_TIMEOUT 2*60*CFG_TICK_FREQUENCY  // 2 minutes in ticks
+
 #define KEY_NONE 0
 
 #define KEY_A 4
@@ -305,15 +309,15 @@ void hid_release_multiple_later_callback(alarm_id_t alarm, uint8_t *keys);
 void hid_macro(uint8_t index);
 
 // Mouse axis.
-void hid_mouse_move(double x, double y);
-void hid_mouse_scroll(double x, double y);
+void hid_mouse_move(float x, float y);
+void hid_mouse_scroll(float x, float y);
 
 // Gamepad.
 bool hid_is_axis(uint8_t action);
 bool hid_is_mouse_axis(uint8_t action);
 bool hid_is_scroll_axis(uint8_t action);
 bool hid_is_gamepad_axis(uint8_t action);
-void hid_gamepad_axis(GamepadAxis axis, double value);
+void hid_gamepad_axis(GamepadAxis axis, float value);
 
 // Report.
 bool hid_report_wired();
@@ -351,3 +355,5 @@ typedef struct __packed _GamepadReport {
 } GamepadReport;
 
 void hid_report_dongle(uint8_t report_id, uint8_t* payload);
+
+bool hid_idle_timeout();
