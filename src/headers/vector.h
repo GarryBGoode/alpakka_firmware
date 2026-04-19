@@ -21,6 +21,8 @@ Vector vector_add(Vector a, Vector b);
 Vector vector_sub(Vector a, Vector b);
 Vector vector_invert(Vector v);
 Vector vector_cross_product(Vector a, Vector b);
+Vector vector_scale(Vector v, float s);
+float vector_dot_product(Vector a, Vector b);
 Vector vector_smooth(Vector a, Vector b, float factor);
 float vector_lenght(Vector v);
 

@@ -740,7 +740,6 @@ bool hid_idle_timeout(){
     memcpy(gamepad_axis_prev, gamepad_axis, sizeof(gamepad_axis));
     
     if (changed) {
-        if (idle_counter > 0) info("#");
         idle_counter = 0;  // Reset idle counter if there was any change.
         
     } else {
@@ -748,7 +747,6 @@ bool hid_idle_timeout(){
     }
     if(idle_counter > HID_IDLE_TIMEOUT && HID_IDLE_TIMEOUT>0) 
     {
-        info("$");
         return true;
     }
     else return false;  // Return true if idle timeout is reached.

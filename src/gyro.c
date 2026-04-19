@@ -195,9 +195,6 @@ void Gyro__report_absolute_fast(Gyro *self){
 
 
 void Gyro__report_incremental(Gyro *self) {
-    // static float sub_x = 0;
-    // static float sub_y = 0;
-    // static float sub_z = 0;
      // Read gyro values.
     Vector imu_gyro = imu_read_gyro();
     float x = imu_gyro.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier *self->sens_x;
@@ -226,14 +223,7 @@ void Gyro__report_incremental(Gyro *self) {
         if      (z > 0 && z <  t) z =  hssnf(t, k,  z);
         else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
 
-        // Reintroduce subpixel leftovers.
-        // x += sub_x;
-        // y += sub_y;
-        // z += sub_z;
-        // Round down and save leftovers.
-        // sub_x = modff(x, &x);
-        // sub_y = modff(y, &y);
-        // sub_z = modff(z, &z);
+
         // Report.
         if (x >= 0) gyro_incremental_output( x, self->actions_x_pos);
         else        gyro_incremental_output(-x, self->actions_x_neg);
@@ -242,95 +232,77 @@ void Gyro__report_incremental(Gyro *self) {
         if (z >= 0) gyro_incremental_output( z, self->actions_z_pos);
         else        gyro_incremental_output(-z, self->actions_z_neg);
     }
-    // else
-    // {
-    //     sub_x = 0;
-    //     sub_y = 0;
-    //     sub_z = 0;
-    // }
+
 }
 
-void Gyro__report_incremental_rot_based(Gyro *self) {
-    static RotationStateVector rotation_ref = {0, 0, 1, 0};
-    float sens_mult_common = sensitivity_multiplier /GYRO_SENS_RADPS_500*REFERENCE_TICK_FREQUENCY;
+void Gyro__report_incremental_rot_based(Gyro *self) { 
+    float x = 0;
+    float y = 0;
+    float z = 0;
+    float sens_mult_common = sensitivity_multiplier / GYRO_SENS_RADPS_500 * REFERENCE_TICK_FREQUENCY / CFG_TICK_FREQUENCY;
     float sens_x = CFG_GYRO_SENSITIVITY_X * sens_mult_common*self->sens_x;
     float sens_y = CFG_GYRO_SENSITIVITY_Y * sens_mult_common*self->sens_y;
     float sens_z = CFG_GYRO_SENSITIVITY_Z * sens_mult_common*self->sens_z;
     bool active = (self->mode == GYRO_MODE_TOUCH_ON && Gyro__is_engaged(self)) ||
             (self->mode == GYRO_MODE_TOUCH_OFF && !Gyro__is_engaged(self)) ||
             (self->mode == GYRO_MODE_ALWAYS_ON);
-    static bool active_prev = false;
+    
+    static bool xref_system = true;
 
+    
+    Vector zref = {
+        rotation_state.ux,
+        rotation_state.uy,
+        rotation_state.uz
+    };
 
-   
+    Vector xref = {0,0,0};
+    Vector yref = {0,0,0};
+    if(fabsf(zref.z)>0.75) xref_system = true;
+    if(fabsf(zref.y)>0.75) xref_system = false;
 
-    float x = 0;
-    float y = 0;
-    float z = 0;
-    static float x_prev = 0;
-    static float y_prev = 0;
-    static float z_prev = 0;
-    float dx = 0;
-    float dy = 0;
-    float dz = 0;
-    /*
-    static float sub_x = 0;
-    static float sub_y = 0;
-    static float sub_z = 0;
-    */
-    static float pitch_ref = 0;
-    static float roll_ref = 0;
-
-    // Extra protection against jitter.
-    if (!active)
+    if(xref_system) 
     {
-        rotation_ref = rotation_state;
-        pitch_ref = atan2f(rotation_ref.uy,sqrtf(rotation_ref.uz*rotation_ref.uz + rotation_ref.ux*rotation_ref.ux));
-        roll_ref = atan2f(rotation_ref.ux,rotation_ref.uz);
+        xref = vector_normalize(vector_cross_product((Vector){0, 1, 0}, zref));
+        yref = vector_cross_product(zref, xref);
     }
     else
     {
-        
-        x = -sens_x * (rotation_state.phi - rotation_ref.phi);
-        y = sens_y * (atan2f(rotation_state.uy,sqrtf(rotation_state.uz*rotation_state.uz + rotation_state.ux*rotation_state.ux)) - pitch_ref);
-        z = sens_z * (atan2f(rotation_state.ux,rotation_state.uz) - roll_ref);
+        yref = vector_normalize(vector_cross_product(zref, (Vector){1, 0, 0}));
+        xref = vector_cross_product(yref, zref);
+    }
+    Vector screen_xyz = {0,0,0};
 
-        if(active_prev)
+
+    if(active)
+    {   
+        // controller x is screen y
+        // controller z is screen -x
+        if(CFG_PREMULT)
         {
-            dx = x-x_prev;
-            dy = y-y_prev;
-            dz = z-z_prev;
+            screen_xyz = vector_add(vector_add(vector_scale(zref,-gyro_act.z*sens_x),vector_scale(yref,gyro_act.y*sens_z)),vector_scale(xref,gyro_act.x*sens_y));
+            x = screen_xyz.z;
+            y = screen_xyz.x;
+            z = screen_xyz.y;
         }
         else
         {
-            dx = 0;
-            dy = 0;
-            dz = 0;
+            screen_xyz = vector_add(vector_add(vector_scale(zref,-gyro_act.z),vector_scale(yref,gyro_act.y)),vector_scale(xref,gyro_act.x));
+            x = screen_xyz.z*sens_x;
+            y = screen_xyz.x*sens_y;
+            z = screen_xyz.y*sens_z;
         }
-        x_prev = x;
-        y_prev = y;
-        z_prev = z;
+
     }
 
-    /*
+    
+    if (x >= 0) gyro_incremental_output( x, self->actions_x_pos);
+    else        gyro_incremental_output(-x, self->actions_x_neg);
+    if (y >= 0) gyro_incremental_output( y, self->actions_y_pos);
+    else        gyro_incremental_output(-y, self->actions_y_neg);
+    if (z >= 0) gyro_incremental_output( z, self->actions_z_pos);
+    else        gyro_incremental_output(-z, self->actions_z_neg);
 
-    dx += sub_x;
-    dy += sub_y;
-    dz += sub_z;
-    // Round down and save leftovers.
-    sub_x = modff(dx, &x);
-    sub_y = modff(dy, &y);
-    sub_z = modff(dz, &z);
-    */
-    
-    if (x >= 0) gyro_incremental_output( dx, self->actions_x_pos);
-    else        gyro_incremental_output(-dx, self->actions_x_neg);
-    if (y >= 0) gyro_incremental_output( dy, self->actions_y_pos);
-    else        gyro_incremental_output(-dy, self->actions_y_neg);
-    if (z >= 0) gyro_incremental_output( dz, self->actions_z_pos);
-    else        gyro_incremental_output(-dz, self->actions_z_neg);
-    
-    active_prev = active;
 }
 
 bool Gyro__is_engaged(Gyro *self) {

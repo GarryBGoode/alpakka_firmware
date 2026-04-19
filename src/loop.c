@@ -244,6 +244,7 @@ void loop_llama_init() {
 void loop_run() {
     info("LOOP: Main loop start\n");
     uint16_t i = 0;
+    uint8_t overrun_count  = 0;
     logging_set_onloop(true);
     while (true) {
         i++;
@@ -268,9 +269,16 @@ void loop_run() {
             }
         }
         // Idling control.
-        if (unused > 0) sleep_us((uint32_t)unused);
+        if (unused > 0) 
+        {
+            sleep_us((uint32_t)unused);
+            overrun_count = 0;
+        }
         else {
-            info("+");
+            overrun_count++;
+            if (overrun_count <10)    info("+");
+            else if (overrun_count == 10) info("+\n");
+            else overrun_count= 11;  // Avoid overflow.
             sleep_us(0);  // Allow IRQ to take over even if the controller is overwhelmed.
         };
         #endif

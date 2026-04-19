@@ -33,6 +33,14 @@ Vector vector_cross_product(Vector a, Vector b) {
     };
 }
 
+float vector_dot_product(Vector a, Vector b) {
+    return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+}
+
+Vector vector_scale(Vector v, float s) {
+    return (Vector){v.x * s, v.y * s, v.z * s};
+}
+
 // Get a pseudo-rolling average of A and B according to given weight.
 // Only (1/weight) parts of B is incorporated into A.
 // The higher the weight the more averaged the result is.
@@ -45,10 +53,10 @@ Vector vector_smooth(Vector a, Vector b, float weight) {
 }
 
 float vector_lenght(Vector v) {
-    return sqrt(
-        powf(fabs(v.x), 2) +
-        powf(fabs(v.y), 2) +
-        powf(fabs(v.z), 2)
+    return sqrtf(
+        (v.x * v.x) +
+        (v.y * v.y) +
+        (v.z * v.z)
     );
 }
 
