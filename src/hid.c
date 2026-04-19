@@ -302,7 +302,7 @@ void hid_mouse_move(float x, float y) {
     mouse_x += x;
     mouse_y += y;
     synced_mouse = false;
-    profile_set_reported_inputs(true);
+    //profile_set_reported_inputs(true);
 }
 
 void hid_mouse_scroll(float x, float y) {
@@ -718,17 +718,17 @@ void hid_init() {
 
 bool hid_idle_timeout(){
     static uint8_t state_matrix_prev[256] = {0,};
-    static int16_t mouse_x_prev = 0;
-    static int16_t mouse_y_prev = 0;
+    static float mouse_x_prev = 0;
+    static float mouse_y_prev = 0;
     static float gamepad_axis_prev[6] = {0,};
     bool changed = false;
     // Check if the state matrix has changed.
     if (memcmp(state_matrix, state_matrix_prev, sizeof(state_matrix)) != 0) changed = true;
     // Check if the mouse position has changed.
-    if (mouse_x != mouse_x_prev || mouse_y != mouse_y_prev) changed = true;
+    if (fabsf(mouse_x - mouse_x_prev) > 0.5f || fabsf(mouse_y - mouse_y_prev) > 0.5f) changed = true;
     // Check if the gamepad axis has changed.
     for (uint8_t i = 0; i < 6; i++) {
-        if (gamepad_axis[i] != gamepad_axis_prev[i]) {
+        if (fabsf(gamepad_axis[i] - gamepad_axis_prev[i]) > 0.5f) {
             changed = true;
             break;
         }
@@ -740,10 +740,16 @@ bool hid_idle_timeout(){
     memcpy(gamepad_axis_prev, gamepad_axis, sizeof(gamepad_axis));
     
     if (changed) {
+        if (idle_counter > 0) info("#");
         idle_counter = 0;  // Reset idle counter if there was any change.
+        
     } else {
         idle_counter++;  // Increment idle counter if no changes.
     }
-    if(idle_counter > HID_IDLE_TIMEOUT && HID_IDLE_TIMEOUT>0) return true;
+    if(idle_counter > HID_IDLE_TIMEOUT && HID_IDLE_TIMEOUT>0) 
+    {
+        info("$");
+        return true;
+    }
     else return false;  // Return true if idle timeout is reached.
 }
