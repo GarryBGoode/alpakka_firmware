@@ -576,9 +576,9 @@ void Thumbstick__report(Thumbstick *self) {
         deadzone /= self->saturation;
     }
     // Calculate trigonometry.
-    float angle = atan2(x, -y) * (180 / M_PI);
-    float raw_radius = sqrt(raw_x*raw_x + raw_y*raw_y);
-    float radius = sqrt(powf(x, 2) + powf(y, 2));
+    float angle = atan2f(x, -y) * (180 / M_PI);
+    float raw_radius = sqrtf(raw_x*raw_x + raw_y*raw_y);
+    float radius = sqrtf(x*x + y*y);
     radius = ramp_low(radius, deadzone);  // Deadzone.
     radius = ramp_inv(radius, self->antideadzone);  // Antideadzone.
     radius = constrain(radius, 0, 1);

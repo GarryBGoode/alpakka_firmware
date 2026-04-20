@@ -157,14 +157,26 @@ void Gyro_check_offset()
     //                     config->stddev_gyro_1_y * config->stddev_gyro_1_y + 
     //                     config->stddev_gyro_1_z * config->stddev_gyro_1_z)* GYRO_SENS_RADPS_125 * GYRO_SENS_RADPS_125 ;
     // float var_size = (var_size_0 * var_size_1) / (var_size_0 + var_size_1) ;
+    // char log_msg[128];
+    // static uint16_t log_cnt = 0;
+    // if(log_cnt++ % 100 == 0) 
+    // {
+    //     sprintf(log_msg, "Gyro offset check: size=%.06f var=%.06f rest_count=%lu\n", gyro_size, var_size_0, rest_count);
+    //     info(log_msg);
+    //     log_cnt=0;
+    // }
 
+    
+    
+    
     if(gyro_size < var_size_0*10) {
+        // info("!");
         rest_count++;
-        if (rest_count >= 1000) {
-            rest_count = 1000;
-            gyro_offset_local.x += (gyro_act.x-gyro_offset_local.x) / 2e3;
-            gyro_offset_local.y += (gyro_act.y-gyro_offset_local.y) / 2e3;
-            gyro_offset_local.z += (gyro_act.z-gyro_offset_local.z) / 2e3;
+        if (rest_count >= CFG_TICK_FREQUENCY) {
+            rest_count = CFG_TICK_FREQUENCY;
+            gyro_offset_local.x += (gyro_act.x-gyro_offset_local.x) / CFG_TICK_FREQUENCY;
+            gyro_offset_local.y += (gyro_act.y-gyro_offset_local.y) / CFG_TICK_FREQUENCY;
+            gyro_offset_local.z += (gyro_act.z-gyro_offset_local.z) / CFG_TICK_FREQUENCY;
         }
     } else {
         rest_count = 0;
@@ -196,10 +208,10 @@ void Gyro__report_absolute_fast(Gyro *self){
 
 void Gyro__report_incremental(Gyro *self) {
      // Read gyro values.
-    Vector imu_gyro = imu_read_gyro();
-    float x = imu_gyro.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier *self->sens_x;
-    float y = imu_gyro.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier *self->sens_y;
-    float z = imu_gyro.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier *self->sens_z;
+    // Vector imu_gyro = imu_read_gyro();
+    float x = gyro_corr.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier *self->sens_x;
+    float y = gyro_corr.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier *self->sens_y;
+    float z = gyro_corr.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier *self->sens_z;
 
     bool active = (self->mode == GYRO_MODE_TOUCH_ON && Gyro__is_engaged(self)) ||
         (self->mode == GYRO_MODE_TOUCH_OFF && !Gyro__is_engaged(self)) ||
@@ -280,14 +292,14 @@ void Gyro__report_incremental_rot_based(Gyro *self) {
         // controller z is screen -x
         if(CFG_PREMULT)
         {
-            screen_xyz = vector_add(vector_add(vector_scale(zref,-gyro_act.z*sens_x),vector_scale(yref,gyro_act.y*sens_z)),vector_scale(xref,gyro_act.x*sens_y));
+            screen_xyz = vector_add(vector_add(vector_scale(zref,-gyro_corr.z*sens_x),vector_scale(yref,gyro_corr.y*sens_z)),vector_scale(xref,gyro_corr.x*sens_y));
             x = screen_xyz.z;
             y = screen_xyz.x;
             z = screen_xyz.y;
         }
         else
         {
-            screen_xyz = vector_add(vector_add(vector_scale(zref,-gyro_act.z),vector_scale(yref,gyro_act.y)),vector_scale(xref,gyro_act.x));
+            screen_xyz = vector_add(vector_add(vector_scale(zref,-gyro_corr.z),vector_scale(yref,gyro_corr.y)),vector_scale(xref,gyro_corr.x));
             x = screen_xyz.z*sens_x;
             y = screen_xyz.x*sens_y;
             z = screen_xyz.y*sens_z;
