@@ -26,6 +26,7 @@
 static DeviceMode device_mode = WIRED;
 static bool battery_low = false;
 static uint64_t system_clock = 0;
+uint16_t CFG_TICK_FREQUENCY = 500;
 
 DeviceMode loop_get_device_mode() {
     return device_mode;
@@ -177,6 +178,7 @@ void loop_controller_task() {
     profile_report_active();
     // Report to the correct channel.
     if (device_mode == WIRED) {
+        CFG_TICK_FREQUENCY = CFG_WIRED_TICK_FREQUENCY;
         static uint64_t last_report_ts = 0;
         uint64_t now = time_us_64();
         // Report to USB.
@@ -196,6 +198,7 @@ void loop_controller_task() {
         }
     }
     if (device_mode == WIRELESS) {
+        CFG_TICK_FREQUENCY = CFG_WIRELESS_TICK_FREQUENCY;
         wireless_controller_task();
         // Switch to wired if USB is connected (check once per second).
         static uint16_t i = 0;
@@ -246,6 +249,7 @@ void loop_run() {
     uint16_t i = 0;
     uint8_t overrun_count  = 0;
     logging_set_onloop(true);
+    CFG_TICK_FREQUENCY = 1000;
     while (true) {
         i++;
         
@@ -256,7 +260,7 @@ void loop_run() {
         loop_controller_task();
         // Calculate used time.
         uint32_t used = time_us_32() - start;
-        int32_t unused = CFG_TICK_INTERVAL_IN_US - (int32_t)used;
+        int32_t unused = (1000000 / CFG_TICK_FREQUENCY) - (int32_t)used;
         // Timing stats.
         if (logging_get_level() >= LOG_DEBUG) {
             static float average = 0;

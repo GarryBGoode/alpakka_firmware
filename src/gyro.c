@@ -208,10 +208,19 @@ void Gyro__report_absolute_fast(Gyro *self){
 
 void Gyro__report_incremental(Gyro *self) {
      // Read gyro values.
-    // Vector imu_gyro = imu_read_gyro();
-    float x = gyro_corr.x * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier *self->sens_x;
-    float y = gyro_corr.y * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier *self->sens_y;
-    float z = gyro_corr.z * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier *self->sens_z;
+
+    
+    static uint32_t time_us_lock_prev = 0;
+    uint32_t time_us = time_us_32();
+    uint32_t dt_us = time_us - time_us_lock_prev; // Safe for overflow with unsigned arithmetic
+    time_us_lock_prev = time_us;
+    dt_us = constrain(dt_us, 0, 50000); // Sanity check for delta time.
+    float dt = dt_us / 1000000.0f;
+    
+    
+    float x = -gyro_corr.z/GYRO_SENS_RADPS_500 * CFG_GYRO_SENSITIVITY_X * sensitivity_multiplier *self->sens_x;
+    float y = gyro_corr.x/GYRO_SENS_RADPS_500 * CFG_GYRO_SENSITIVITY_Y * sensitivity_multiplier *self->sens_y;
+    float z = gyro_corr.y/GYRO_SENS_RADPS_500 * CFG_GYRO_SENSITIVITY_Z * sensitivity_multiplier *self->sens_z;
 
     bool active = (self->mode == GYRO_MODE_TOUCH_ON && Gyro__is_engaged(self)) ||
         (self->mode == GYRO_MODE_TOUCH_OFF && !Gyro__is_engaged(self)) ||
@@ -221,9 +230,9 @@ void Gyro__report_incremental(Gyro *self) {
     if(active)
     {
         // compensate tick frequency.
-        x *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
-        y *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
-        z *= (float)REFERENCE_TICK_FREQUENCY/(float)CFG_TICK_FREQUENCY;
+        x *= (float)REFERENCE_TICK_FREQUENCY*dt;
+        y *= (float)REFERENCE_TICK_FREQUENCY*dt;
+        z *= (float)REFERENCE_TICK_FREQUENCY*dt;
 
         //Additional processing.
         float t = CFG_IMU_DEADZONE;
@@ -248,10 +257,16 @@ void Gyro__report_incremental(Gyro *self) {
 }
 
 void Gyro__report_incremental_rot_based(Gyro *self) { 
+
+    static uint32_t time_us_lock_prev = 0;
+    uint32_t time_us = time_us_32();
+    uint32_t dt_us = time_us - time_us_lock_prev; // Safe for overflow with unsigned arithmetic
+    time_us_lock_prev = time_us;
+    dt_us = constrain(dt_us, 0, 50000); // Sanity check for delta time.
     float x = 0;
     float y = 0;
     float z = 0;
-    float sens_mult_common = sensitivity_multiplier / GYRO_SENS_RADPS_500 * REFERENCE_TICK_FREQUENCY / CFG_TICK_FREQUENCY;
+    float sens_mult_common = sensitivity_multiplier / GYRO_SENS_RADPS_500 * REFERENCE_TICK_FREQUENCY * dt_us / 1000000.0f;
     float sens_x = CFG_GYRO_SENSITIVITY_X * sens_mult_common*self->sens_x;
     float sens_y = CFG_GYRO_SENSITIVITY_Y * sens_mult_common*self->sens_y;
     float sens_z = CFG_GYRO_SENSITIVITY_Z * sens_mult_common*self->sens_z;
@@ -259,7 +274,7 @@ void Gyro__report_incremental_rot_based(Gyro *self) {
             (self->mode == GYRO_MODE_TOUCH_OFF && !Gyro__is_engaged(self)) ||
             (self->mode == GYRO_MODE_ALWAYS_ON);
     
-    static bool xref_system = true;
+    static uint8_t xref_system = 1;
 
     
     Vector zref = {
@@ -270,19 +285,22 @@ void Gyro__report_incremental_rot_based(Gyro *self) {
 
     Vector xref = {0,0,0};
     Vector yref = {0,0,0};
-    if(fabsf(zref.z)>0.75) xref_system = true;
-    if(fabsf(zref.y)>0.75) xref_system = false;
+    if(fabsf(zref.z)>0.75) xref_system = 1;
+    if(fabsf(zref.y)>0.75) xref_system = 2;
+    if(fabsf(zref.x)>0.75) xref_system = 3;
 
-    if(xref_system) 
+
+    if(xref_system==1 || xref_system==3) 
     {
         xref = vector_normalize(vector_cross_product((Vector){0, 1, 0}, zref));
         yref = vector_cross_product(zref, xref);
     }
-    else
+    else if(xref_system==2)
     {
         yref = vector_normalize(vector_cross_product(zref, (Vector){1, 0, 0}));
         xref = vector_cross_product(yref, zref);
     }
+
     Vector screen_xyz = {0,0,0};
 
 

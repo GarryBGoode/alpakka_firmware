@@ -25,15 +25,18 @@
 
 #define CFG_LED_BRIGHTNESS 0.05
 
-#define CFG_TICK_FREQUENCY 500  // Hz.
-#define REFERENCE_TICK_FREQUENCY 250  // Hz. This used to be the default, it is used for backward compatibility.
-#define CFG_IMU_TICK_SAMPLES 128  // Multi-sampling per pooling cycle.
+#define CFG_WIRED_TICK_FREQUENCY 750
+#define CFG_WIRELESS_TICK_FREQUENCY 500
 
-#define CFG_IMU_DEADZONE 1.0 // Deadzone for the IMU in pixels per second
+#ifndef CFG_TICK_FREQUENCY
+    extern uint16_t CFG_TICK_FREQUENCY;
+#endif
+#define REFERENCE_TICK_FREQUENCY 250  // Hz. This used to be the default, it is used for backward compatibility.
+
+#define CFG_IMU_DEADZONE 0.0 // Deadzone for the IMU in pixels per second
 #define CFG_IMU_DEADZONE_STRENGTH 0.5 // Strength of the deadzone, the amount of movement reduction near zero.
 
 #define CFG_TICK_INTERVAL_IN_MS  (1000 / CFG_TICK_FREQUENCY)
-#define CFG_TICK_INTERVAL_IN_US  (1000000 / CFG_TICK_FREQUENCY)
 
 #define NVM_SYNC_FREQUENCY  (CFG_TICK_FREQUENCY / 2)
 
@@ -63,7 +66,7 @@
 // When true, incremental (normal mouse mode) gyro will be corrected by world frame directions.
 // This results in a behavior similar to laser-pointer aiming, though ratcheting still works the same.
 // When false, incremental gyro mode is fixed to local (controller) space.
-#define CFG_INCREMENTAL_MODE_WORLD_ROT true
+#define CFG_INCREMENTAL_MODE_WORLD_ROT false
 // Whether to premultiply the rotation vector by sensitivity before calculating the output vector. E.g. scaling X affects the controller-space X axis.
 // This can result in better consistency if you're scaling the axis due to wrist movement / comfort.
 // If you're scaling the axis due to a wide screen or similar, it is better to keep this false, scaling X axis will affect the screen-space X axis.
