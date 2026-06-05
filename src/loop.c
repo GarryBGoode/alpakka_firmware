@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include <pico/time.h>
+#include <hardware/clocks.h>
+#include <hardware/vreg.h>
 #include <tusb.h>
 #include "loop.h"
 #include "config.h"
@@ -126,6 +128,7 @@ static void board_led() {
 }
 
 void loop_controller_init() {
+    uint32_t sys_clock_hz = clock_get_hz(clk_sys);
     led_init();
     stdio_uart_init();
     stdio_init_all();
@@ -134,7 +137,7 @@ void loop_controller_init() {
     config_init();
     tusb_init();
     bool usb = usb_wait_for_init(USB_WAIT_FOR_INIT_MS);
-    // wait_for_system_clock();
+
     bus_init();
     hid_init();
     thumbstick_init();
@@ -145,10 +148,17 @@ void loop_controller_init() {
     power_gpio_init();
     wireless_init();
     set_wired();
+
+
     if (!usb) {  // Variable out of the #if block so it is always used.
         #if defined DEVICE_ALPAKKA_V1
             set_wireless();
         #endif
+    }
+    if (CFG_OVECLOCK_RPI  && ((DEVICE_SYS_CLOCK*1000 - sys_clock_hz) > 1000 || (sys_clock_hz - DEVICE_SYS_CLOCK*1000) > 1000)) {
+        vreg_set_voltage(VREG_VOLTAGE_1_15);
+        sleep_us(1000); 
+        set_sys_clock_khz(DEVICE_SYS_CLOCK , true);
     }
     loop_run();
 }

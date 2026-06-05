@@ -108,6 +108,9 @@ target_sources(${PROJECT} PUBLIC
     src/rotation_fast.c
     src/self_test.c
     src/thanks.c
+    src/thumbstick/dir4.c
+    src/thumbstick/dir8.c
+    src/thumbstick/glyphstick.c
     src/thumbstick/rotation.c
     src/thumbstick.c
     src/touch.c

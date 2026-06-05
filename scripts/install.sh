@@ -3,19 +3,19 @@
 
 # Pico SDK.
 SDK_URL=https://github.com/raspberrypi/pico-sdk.git
-SDK_TAG=2.1.0
+SDK_TAG=2.2.0
 
 # Pico Extras.
 EXTRAS_URL=https://github.com/raspberrypi/pico-extras.git
-EXTRAS_TAG=sdk-2.1.0
+EXTRAS_TAG=sdk-2.2.0
 
 # Pico tool.
 PICOTOOL_URL=https://github.com/raspberrypi/picotool.git
-PICOTOOL_TAG=2.1.0
+PICOTOOL_TAG=2.2.0
 
 # ESP serial flasher
 ESPSF_URL=https://github.com/espressif/esp-serial-flasher
-ESPSF_TAG=v1.6.2
+ESPSF_TAG=v1.10.0
 
 # ARM toolchain.
 # WEBSITE: https://developer.arm.com/downloads/-/gnu-rm

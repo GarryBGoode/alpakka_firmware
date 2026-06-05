@@ -283,7 +283,11 @@ void hid_macro(uint8_t index) {
 }
 
 bool hid_is_axis(uint8_t action) {
-    return hid_is_mouse_axis(action) || hid_is_gamepad_axis(action);
+    return (
+        hid_is_gamepad_axis(action) ||
+        hid_is_mouse_axis(action) ||
+        hid_is_scroll_axis(action)
+    );
 }
 
 bool hid_is_mouse_axis(uint8_t action) {

@@ -27,8 +27,8 @@ for i, line in enumerate(lines):
 for i, segment in enumerate(segments):
     segment = segment.replace(',\n', ';\n')
     segment = segment.replace(
-        '.data = (uint8_t[])',
-        f'uint8_t __in_flash() c2_segment_{i}[] = ',
+        '.data = (const uint8_t[])',
+        f'const uint8_t __in_flash() c2_segment_{i}[] = ',
     )
     segments[i] = segment
 

@@ -151,7 +151,6 @@ void Profile__load_from_config(Profile *self, CtrlProfile *profile) {
         ctrl_gyro.mode,
         ctrl_gyro.engage
     );
-    info("%d %d %d\n", ctrl_gyro_x.sens, ctrl_gyro_y.sens, ctrl_gyro_z.sens);
     self->gyro.config_x(
         &(self->gyro),
         (int8_t)ctrl_gyro_x.angle_min,

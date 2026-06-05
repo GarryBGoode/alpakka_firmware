@@ -58,11 +58,12 @@ typedef struct _RotationState {
     float delta_smooth;
     float entry_angle;
     float last_angle;
+    float last_value;
     float tracked_angle;
     float tracked_value;
     uint8_t action;
+    uint8_t last_action;
     bool has_action;
-    bool action_is_secondary;
     bool did_flick;
     float flick_angle;
     float flick_action;
@@ -169,6 +170,26 @@ void thumbstick_calibrate();
 void thumbstick_update_deadzone();
 void thumbstick_update_smooth_samples();
 void thumbstick_from_ctrl(Thumbstick *thumbstick, CtrlProfile *ctrl, uint8_t index);
+uint8_t thumbstick_get_direction(float angle, float overlap);
+
+// thumbstick/dir4.c
+void Thumbstick__config_4dir(Thumbstick *self, Button left, Button right, Button up, Button down, Button push, Button inner, Button outer);
+void Thumbstick__report_4dir(Thumbstick *self, ThumbstickPosition pos, float raw_radius);
+void Thumbstick__report_4dir_dir(Thumbstick *self, Button *direction, float value);
+void Thumbstick__report_4dir_axis(Thumbstick *self, uint8_t axis, float value);
+void Thumbstick__report_push_auto_toggle(Thumbstick *self, ThumbstickPosition pos);
+
+// thumbstick/dir4.c
+void Thumbstick__config_8dir(Thumbstick *self, Button left, Button right, Button up, Button down, Button ul, Button ur, Button dl, Button dr, Button push);
+void Thumbstick__report_8dir(Thumbstick *self, ThumbstickPosition pos, float raw_radius);
+
+// thumbstick/gliphstick.c
+void thumbstick_init_daisywheel();
+void Thumbstick__config_glyphstick(Thumbstick *self, Actions actions, Glyph glyph);
+void Thumbstick__config_daisywheel(Thumbstick *self, uint8_t dir, uint8_t button, Actions actions);
+void Thumbstick__report_glyphstick(Thumbstick *self, Glyph input);
+void Thumbstick__report_daisywheel(Thumbstick *self, Dir8 dir);
+void Thumbstick__report_alphanumeric(Thumbstick *self, ThumbstickPosition pos);
 
 // thumbstick/rotation.c
 void Thumbstick__report_rotation(Thumbstick *self, ThumbstickPosition pos, float raw_radius);

@@ -229,10 +229,6 @@ void Gyro__report_incremental(Gyro *self) {
 
     if(active)
     {
-        // compensate tick frequency.
-        x *= (float)REFERENCE_TICK_FREQUENCY*dt;
-        y *= (float)REFERENCE_TICK_FREQUENCY*dt;
-        z *= (float)REFERENCE_TICK_FREQUENCY*dt;
 
         //Additional processing.
         float t = CFG_IMU_DEADZONE;
@@ -243,6 +239,12 @@ void Gyro__report_incremental(Gyro *self) {
         else if (y < 0 && y > -t) y = -hssnf(t, k, -y);
         if      (z > 0 && z <  t) z =  hssnf(t, k,  z);
         else if (z < 0 && z > -t) z = -hssnf(t, k, -z);
+
+        // compensate tick frequency.
+        x *= (float)REFERENCE_TICK_FREQUENCY*dt;
+        y *= (float)REFERENCE_TICK_FREQUENCY*dt;
+        z *= (float)REFERENCE_TICK_FREQUENCY*dt;
+
 
 
         // Report.

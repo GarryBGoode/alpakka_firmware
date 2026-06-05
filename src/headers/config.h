@@ -26,7 +26,7 @@
 #define CFG_LED_BRIGHTNESS 0.05
 
 #define CFG_WIRED_TICK_FREQUENCY 750
-#define CFG_WIRELESS_TICK_FREQUENCY 750
+#define CFG_WIRELESS_TICK_FREQUENCY 500
 
 #ifndef CFG_TICK_FREQUENCY
     extern uint16_t CFG_TICK_FREQUENCY;
@@ -51,7 +51,7 @@
 #define CFG_GYRO_SENSITIVITY_Y  (CFG_GYRO_SENSITIVITY * 1)
 #define CFG_GYRO_SENSITIVITY_Z  (CFG_GYRO_SENSITIVITY * 1)
 
-#define CFG_MOUSE_WHEEL_DEBOUNCE 1000
+#define CFG_MOUSE_WHEEL_DEBOUNCE 3000
 #define CFG_ACCEL_CORRECTION_SMOOTH 50  // Number of averaged samples for the correction vector.
 #define CFG_ACCEL_CORRECTION_RATE 0.0007  // How fast the correction is applied.
 
@@ -71,6 +71,12 @@
 // This can result in better consistency if you're scaling the axis due to wrist movement / comfort.
 // If you're scaling the axis due to a wide screen or similar, it is better to keep this false, scaling X axis will affect the screen-space X axis.
 #define CFG_PREMULT false  
+
+// Overclocking the RP2040 from 140MHz to 200MHz. This is needed to reach 1000Hz polling rate in wired mode.
+// While 200MHz is still in range according to datasheet, it needs slightly higher voltage, causes faster battery drain and might cause heat issues.
+// Also sometimes fails to boot.
+#define CFG_OVECLOCK_RPI false
+#define DEVICE_SYS_CLOCK  204000
 
 typedef enum _Protocol {
     PROTOCOL_UNDEFINED = -1,
