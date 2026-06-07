@@ -19,7 +19,7 @@
 
 // timeout for going to sleep in wireless mode
 // set to 0 to disable
-#define HID_IDLE_TIMEOUT 2*60*CFG_TICK_FREQUENCY  // 2 minutes in ticks
+#define HID_IDLE_TIMEOUT CFG_WIRELESS_AUTOSLEEP*60*CFG_TICK_FREQUENCY  // 2 minutes in ticks
 
 #define KEY_NONE 0
 

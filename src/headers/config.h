@@ -61,12 +61,14 @@
 #define CFG_DOUBLE_PRESS_TIME 300  // Milliseconds.
 #define CFG_HOME_SLEEP_TIME 5000  // Milliseconds.
 
+# define CFG_WIRELESS_AUTOSLEEP 3 //  Minutes of inactivity before going to sleep in wireless mode. Set to 0 to disable.
+
 #define CFG_DHAT_DEBOUNCE_TIME 100  // Milliseconds.
 
 // When true, incremental (normal mouse mode) gyro will be corrected by world frame directions.
 // This results in a behavior similar to laser-pointer aiming, though ratcheting still works the same.
 // When false, incremental gyro mode is fixed to local (controller) space.
-#define CFG_INCREMENTAL_MODE_WORLD_ROT true
+#define CFG_INCREMENTAL_MODE_WORLD_ROT false
 // Whether to premultiply the rotation vector by sensitivity before calculating the output vector. E.g. scaling X affects the controller-space X axis.
 // This can result in better consistency if you're scaling the axis due to wrist movement / comfort.
 // If you're scaling the axis due to a wide screen or similar, it is better to keep this false, scaling X axis will affect the screen-space X axis.
