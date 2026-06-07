@@ -304,6 +304,157 @@ void imu_calibrate_single(uint8_t cs, ImuCalib *calib) {
         calib->gyro[0].variance, calib->gyro[1].variance, calib->gyro[2].variance);
 }
 
+
+void imu_calibrate_double(uint8_t cs1, uint8_t cs2, ImuCalib *calib1, ImuCalib *calib2) {
+    char *mode_str = "both";
+    info("Calibrating IMU1 and IMU2 together...\n");
+    float mean_1_x_accel = 0;
+    float mean_1_x_gyro = 0;
+    float mean_1_y_accel = 0;
+    float mean_1_y_gyro = 0;
+    float mean_1_z_accel = 0;
+    float mean_1_z_gyro = 0;
+    float  var_1_x_accel = 0;
+    float  var_1_x_gyro = 0;
+    float  var_1_y_accel = 0;
+    float  var_1_y_gyro = 0;
+    float  var_1_z_gyro = 0;
+    float  var_1_z_accel = 0;
+
+    float mean_2_x_accel = 0;
+    float mean_2_x_gyro = 0;
+    float mean_2_y_accel = 0;
+    float mean_2_y_gyro = 0;
+    float mean_2_z_accel = 0;
+    float mean_2_z_gyro = 0;
+    float  var_2_x_accel = 0;
+    float  var_2_x_gyro = 0;
+    float  var_2_y_accel = 0;
+    float  var_2_y_gyro = 0;
+    float  var_2_z_gyro = 0;
+    float  var_2_z_accel = 0;
+
+
+    // Determine number of samples.
+    uint32_t nsamples;
+    nsamples = CFG_CALIBRATION_SAMPLES_GYRO;
+    Config *config = config_read();
+    if (config->long_calibration) {
+        nsamples *= CFG_CALIBRATION_LONG_FACTOR;
+
+    }
+    // Sampling.
+    uint32_t i = 0;
+    info("| 0%%%*s100%% |\n", CFG_CALIBRATION_PROGRESS_BAR - 10, "");
+    while(i < nsamples) {
+        Vector sample_accel = imu_read_accel_bits(cs1);
+        Vector sample_gyro = imu_read_gyro_bits(cs1);
+        
+        // using cumulative average algorithm
+        // the reason is that this way variance can use the actual value of the average
+
+        mean_1_x_accel = (sample_accel.x + mean_1_x_accel*i)/(i+1);
+        mean_1_y_accel = (sample_accel.y + mean_1_y_accel*i)/(i+1);
+        mean_1_z_accel = (sample_accel.z + mean_1_z_accel*i)/(i+1);
+        var_1_x_accel = ((sample_accel.x - mean_1_x_accel) * (sample_accel.x - mean_1_x_accel) + var_1_x_accel * i) / (i + 1);
+        var_1_y_accel = ((sample_accel.y - mean_1_y_accel) * (sample_accel.y - mean_1_y_accel) + var_1_y_accel * i) / (i + 1);
+        var_1_z_accel = ((sample_accel.z - mean_1_z_accel) * (sample_accel.z - mean_1_z_accel) + var_1_z_accel * i) / (i + 1);
+
+        mean_1_x_gyro = (sample_gyro.x + mean_1_x_gyro*i)/(i+1);
+        mean_1_y_gyro = (sample_gyro.y + mean_1_y_gyro*i)/(i+1);
+        mean_1_z_gyro = (sample_gyro.z + mean_1_z_gyro*i)/(i+1);
+        var_1_x_gyro = ((sample_gyro.x - mean_1_x_gyro) * (sample_gyro.x - mean_1_x_gyro) + var_1_x_gyro * i) / (i + 1);
+        var_1_y_gyro = ((sample_gyro.y - mean_1_y_gyro) * (sample_gyro.y - mean_1_y_gyro) + var_1_y_gyro * i) / (i + 1);
+        var_1_z_gyro = ((sample_gyro.z - mean_1_z_gyro) * (sample_gyro.z - mean_1_z_gyro) + var_1_z_gyro * i) / (i + 1);
+
+        
+        sample_accel = imu_read_accel_bits(cs2);
+        sample_gyro = imu_read_gyro_bits(cs2);
+        mean_2_x_accel = (sample_accel.x + mean_2_x_accel*i)/(i+1);
+        mean_2_y_accel = (sample_accel.y + mean_2_y_accel*i)/(i+1);
+        mean_2_z_accel = (sample_accel.z + mean_2_z_accel*i)/(i+1);
+        var_2_x_accel = ((sample_accel.x - mean_2_x_accel) * (sample_accel.x - mean_2_x_accel) + var_2_x_accel * i) / (i + 1);
+        var_2_y_accel = ((sample_accel.y - mean_2_y_accel) * (sample_accel.y - mean_2_y_accel) + var_2_y_accel * i) / (i + 1);
+        var_2_z_accel = ((sample_accel.z - mean_2_z_accel) * (sample_accel.z - mean_2_z_accel) + var_2_z_accel * i) / (i + 1);
+
+        mean_2_x_gyro = (sample_gyro.x + mean_2_x_gyro*i)/(i+1);
+        mean_2_y_gyro = (sample_gyro.y + mean_2_y_gyro*i)/(i+1);
+        mean_2_z_gyro = (sample_gyro.z + mean_2_z_gyro*i)/(i+1);
+        var_2_x_gyro = ((sample_gyro.x - mean_2_x_gyro) * (sample_gyro.x - mean_2_x_gyro) + var_2_x_gyro * i) / (i + 1);
+        var_2_y_gyro = ((sample_gyro.y - mean_2_y_gyro) * (sample_gyro.y - mean_2_y_gyro) + var_2_y_gyro * i) / (i + 1);
+        var_2_z_gyro = ((sample_gyro.z - mean_2_z_gyro) * (sample_gyro.z - mean_2_z_gyro) + var_2_z_gyro * i) / (i + 1);
+
+        i++;
+        sleep_us(1E6 / 6660); // 6660Hz sampling rate of IMU.
+        if (!(i % (nsamples / CFG_CALIBRATION_PROGRESS_BAR))) info("=");
+    }
+    calib1->accel[0].offset = mean_1_x_accel;
+    calib1->accel[1].offset = mean_1_y_accel;
+    calib1->accel[2].offset = mean_1_z_accel;
+    calib1-> gyro[0].offset = mean_1_x_gyro;
+    calib1-> gyro[1].offset = mean_1_y_gyro;
+    calib1-> gyro[2].offset = mean_1_z_gyro;
+
+    calib1->accel[0].variance = var_1_x_accel;
+    calib1->accel[1].variance = var_1_y_accel;
+    calib1->accel[2].variance = var_1_z_accel;
+    calib1-> gyro[0].variance = var_1_x_gyro;
+    calib1-> gyro[1].variance = var_1_y_gyro;
+    calib1-> gyro[2].variance = var_1_z_gyro;
+
+    calib1->accel[0].stddev = sqrtf(var_1_x_accel);
+    calib1->accel[1].stddev = sqrtf(var_1_y_accel);
+    calib1->accel[2].stddev = sqrtf(var_1_z_accel);
+    calib1-> gyro[0].stddev = sqrtf(var_1_x_gyro);
+    calib1-> gyro[1].stddev = sqrtf(var_1_y_gyro);
+    calib1-> gyro[2].stddev = sqrtf(var_1_z_gyro);
+
+
+    calib2->accel[0].offset = mean_2_x_accel;
+    calib2->accel[1].offset = mean_2_y_accel;
+    calib2->accel[2].offset = mean_2_z_accel;
+    calib2-> gyro[0].offset = mean_2_x_gyro;
+    calib2-> gyro[1].offset = mean_2_y_gyro;
+    calib2-> gyro[2].offset = mean_2_z_gyro;
+
+    calib2->accel[0].variance = var_2_x_accel;
+    calib2->accel[1].variance = var_2_y_accel;
+    calib2->accel[2].variance = var_2_z_accel;
+    calib2-> gyro[0].variance = var_2_x_gyro;
+    calib2-> gyro[1].variance = var_2_y_gyro;
+    calib2-> gyro[2].variance = var_2_z_gyro;
+
+    calib2->accel[0].stddev = sqrtf(var_2_x_accel);
+    calib2->accel[1].stddev = sqrtf(var_2_y_accel);
+    calib2->accel[2].stddev = sqrtf(var_2_z_accel);
+    calib2-> gyro[0].stddev = sqrtf(var_2_x_gyro);
+    calib2-> gyro[1].stddev = sqrtf(var_2_y_gyro);
+    calib2-> gyro[2].stddev = sqrtf(var_2_z_gyro);
+
+
+
+
+
+    info("\nIMU: cs=%i %s calibrated \n x_acc=%.02f y_acc=%.02f z_acc=%.02f\n", cs1, mode_str, 
+        calib1->accel[0].offset, calib1->accel[1].offset, calib1->accel[2].offset);
+    info(" x_gyro=%.02f y_gyro=%.02f z_gyro=%.02f\n",
+        calib1->gyro[0].offset, calib1->gyro[1].offset, calib1->gyro[2].offset);
+    info(" x_acc_var=%.02f y_acc_var=%.02f z_acc_var=%.02f\n",
+        calib1->accel[0].variance, calib1->accel[1].variance, calib1->accel[2].variance);
+    info(" x_gyro_var=%.02f y_gyro_var=%.02f z_gyro_var=%.02f\n",
+        calib1->gyro[0].variance, calib1->gyro[1].variance, calib1->gyro[2].variance);
+
+
+    info("\nIMU: cs=%i %s calibrated \n x_acc=%.02f y_acc=%.02f z_acc=%.02f\n", cs2, mode_str, 
+        calib2->accel[0].offset, calib2->accel[1].offset, calib2->accel[2].offset);
+    info(" x_gyro=%.02f y_gyro=%.02f z_gyro=%.02f\n",
+        calib2->gyro[0].offset, calib2->gyro[1].offset, calib2->gyro[2].offset);
+    info(" x_acc_var=%.02f y_acc_var=%.02f z_acc_var=%.02f\n",
+        calib2->accel[0].variance, calib2->accel[1].variance, calib2->accel[2].variance);
+    info(" x_gyro_var=%.02f y_gyro_var=%.02f z_gyro_var=%.02f\n",
+        calib2->gyro[0].variance, calib2->gyro[1].variance, calib2->gyro[2].variance);
+}
+
 void imu_load_calibration() {
     Config *config = config_read();
     imu_calib0.gyro[0].offset = config->offset_gyro_0_x - (config->offset_gyro_user_x * GYRO_USER_OFFSET_FACTOR);
@@ -412,8 +563,7 @@ void imu_reset_calibration() {
 void imu_calibrate() {
     config_set_gyro_user_offset(0, 0, 0);
     imu_reset_calibration();
-    imu_calibrate_single(PIN_SPI_CS0, &imu_calib0);
-    imu_calibrate_single(PIN_SPI_CS1, &imu_calib1);
+    imu_calibrate_double(PIN_SPI_CS0, PIN_SPI_CS1, &imu_calib0, &imu_calib1);
 
     config_set_gyro_offset(
         imu_calib0.gyro[0].offset,
